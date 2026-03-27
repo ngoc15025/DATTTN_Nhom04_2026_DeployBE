@@ -8,18 +8,19 @@ namespace DiemDanhLopHoc.Models
         public LopHoc()
         {
             BuoiHocs = new HashSet<BuoiHoc>();
-            MaSVs = new HashSet<SinhVien>();
+            MaSvs = new HashSet<SinhVien>();
         }
 
         public string MaLop { get; set; } = null!;
         public string TenLop { get; set; } = null!;
-        public string? MonHoc { get; set; }
-        public string? MaGV { get; set; }
+        public string? MaMon { get; set; }
+        public string? MaGv { get; set; }
 
-        public virtual GiangVien? MaGVNavigation { get; set; }
+        public virtual GiangVien? MaGvNavigation { get; set; }
+        public virtual MonHoc? MaMonNavigation { get; set; }
         public virtual ICollection<BuoiHoc> BuoiHocs { get; set; }
 
-        public virtual ICollection<SinhVien> MaSVs { get; set; }
+        public virtual ICollection<SinhVien> MaSvs { get; set; }
 
         public ICollection<ChiTietLopHoc> ChiTietLopHocs { get; set; }
     }

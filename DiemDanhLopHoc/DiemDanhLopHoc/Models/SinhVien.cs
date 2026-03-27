@@ -11,7 +11,7 @@ namespace DiemDanhLopHoc.Models
             MaLops = new HashSet<LopHoc>();
         }
 
-        public string MaSV { get; set; } = null!;
+        public string MaSv { get; set; } = null!;
         public string TaiKhoan { get; set; } = null!;
         public string MatKhau { get; set; } = null!;
         public string HoTen { get; set; } = null!;

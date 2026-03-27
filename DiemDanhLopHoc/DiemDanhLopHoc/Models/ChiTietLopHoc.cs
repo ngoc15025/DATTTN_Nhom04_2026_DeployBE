@@ -1,4 +1,4 @@
-﻿
+﻿using DiemDanhLopHoc.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -14,9 +14,9 @@ namespace DiemDanhLopHoc.Models
         public LopHoc LopHoc { get; set; }
 
         [Column(TypeName = "varchar(20)")]
-        public string MaSV { get; set; }
+        public string MaSv { get; set; }
 
-        [ForeignKey("MaSV")]
+        [ForeignKey("MaSv")]
         public SinhVien SinhVien { get; set; }
     }
 }
