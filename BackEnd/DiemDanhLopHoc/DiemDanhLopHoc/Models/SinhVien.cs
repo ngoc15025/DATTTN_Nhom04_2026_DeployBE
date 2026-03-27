@@ -24,6 +24,6 @@ namespace DiemDanhLopHoc.Models
 
         public virtual ICollection<LopHoc> MaLops { get; set; }
 
-        public ICollection<ChiTietLopHoc> ChiTietLopHocs { get; set; }
+
     }
 }

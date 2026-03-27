@@ -30,7 +30,27 @@ namespace DiemDanhLopHoc.Data
         {
             modelBuilder.Entity<BuoiHoc>(entity =>
             {
-                entity.HasKey(e => e.MaBuoiHoc)
+
+                modelBuilder.Entity<LopHoc>()
+                  .HasMany(l => l.MaSvs)
+                 .WithMany(s => s.MaLops)
+                  .UsingEntity<Dictionary<string, object>>(
+                           "ChiTietLopHoc",
+                   l => l.HasOne<SinhVien>().WithMany().HasForeignKey("MaSv").OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("FK__ChiTietLop__MaSV__5AEE82B9"),
+                   r => r.HasOne<LopHoc>().WithMany().HasForeignKey("MaLop").OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("FK__ChiTietLo__MaLop__59FA5E80"),
+                      j =>
+                      {
+                          j.HasKey("MaLop", "MaSv").HasName("PK__ChiTietL__89EA82F27BDF178C");
+
+                          j.ToTable("ChiTietLopHoc");
+
+                          j.IndexerProperty<string>("MaLop").HasMaxLength(20).IsUnicode(false);
+
+
+                          j.IndexerProperty<string>("MaSv").HasMaxLength(20).IsUnicode(false).HasColumnName("MaSV");
+                      });
+           
+            entity.HasKey(e => e.MaBuoiHoc)
                     .HasName("PK__BuoiHoc__53302506DB4E7FF7");
 
                 entity.ToTable("BuoiHoc");
