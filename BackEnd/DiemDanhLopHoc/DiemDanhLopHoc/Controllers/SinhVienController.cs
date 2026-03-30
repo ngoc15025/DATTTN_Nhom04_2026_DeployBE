@@ -60,7 +60,16 @@ namespace DiemDanhLopHoc.Controllers
             return Ok(danhSach);
         }
 
-        // --- 4. API Thêm Sinh viên mới (POST /api/sinhvien) ---
+        // --- 4. DTO nhận dữ liệu khi cập nhật sinh viên (PUT) ---
+        // Chỉ cho phép sửa HoTen, Email, SoDienThoai — không sửa MaSv, MatKhau, TaiKhoan
+        public class CapNhatSinhVienDto
+        {
+            public string HoTen { get; set; } = null!;
+            public string? Email { get; set; }
+            public string? SoDienThoai { get; set; }
+        }
+
+        // --- 5. API Thêm Sinh viên mới (POST /api/sinhvien) ---
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] TaoSinhVienDto request)
         {
@@ -92,6 +101,62 @@ namespace DiemDanhLopHoc.Controllers
             };
 
             return Ok(new { Message = "Thêm sinh viên thành công!", Data = ketQua });
+        }
+
+        // --- 6. API Cập nhật thông tin Sinh viên (PUT /api/sinhvien/{maSv}) ---
+        // Chỉ cho sửa HoTen, Email, SoDienThoai — MaSv và MatKhau không được thay đổi
+        [HttpPut("{maSv}")]
+        public async Task<IActionResult> Update(string maSv, [FromBody] CapNhatSinhVienDto request)
+        {
+            // Tìm sinh viên theo mã
+            var sinhVien = await _context.SinhViens.FindAsync(maSv);
+            if (sinhVien == null)
+                return NotFound(new { Message = $"Không tìm thấy sinh viên có mã '{maSv}'!" });
+
+            // Cập nhật các trường được phép sửa
+            sinhVien.HoTen = request.HoTen;
+            sinhVien.Email = request.Email;
+            sinhVien.SoDienThoai = request.SoDienThoai;
+
+            await _context.SaveChangesAsync();
+
+            // Trả về thông tin sau khi cập nhật (dùng DTO để ẩn MatKhau)
+            var ketQua = new SinhVienDto
+            {
+                MaSv = sinhVien.MaSv,
+                TaiKhoan = sinhVien.TaiKhoan,
+                HoTen = sinhVien.HoTen,
+                NgaySinh = sinhVien.NgaySinh,
+                Email = sinhVien.Email,
+                SoDienThoai = sinhVien.SoDienThoai,
+                AnhDaiDien = sinhVien.AnhDaiDien
+            };
+
+            return Ok(new { Message = "Cập nhật sinh viên thành công!", Data = ketQua });
+        }
+
+        // --- 7. API Xóa Sinh viên (DELETE /api/sinhvien/{maSv}) ---
+        // Dùng try-catch để xử lý trường hợp sinh viên đang có dữ liệu liên quan (khóa ngoại)
+        [HttpDelete("{maSv}")]
+        public async Task<IActionResult> Delete(string maSv)
+        {
+            // Tìm sinh viên theo mã
+            var sinhVien = await _context.SinhViens.FindAsync(maSv);
+            if (sinhVien == null)
+                return NotFound(new { Message = $"Không tìm thấy sinh viên có mã '{maSv}'!" });
+
+            try
+            {
+                _context.SinhViens.Remove(sinhVien);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { Message = $"Đã xóa sinh viên '{sinhVien.HoTen}' ({maSv}) thành công!" });
+            }
+            catch (DbUpdateException)
+            {
+                // Lỗi khóa ngoại: sinh viên đang có dữ liệu ở bảng ChiTietLopHoc hoặc DiemDanh
+                return Conflict(new { Message = $"Không thể xóa sinh viên '{maSv}' vì đang có dữ liệu liên quan (điểm danh hoặc lớp học)!" });
+            }
         }
     }
 }
