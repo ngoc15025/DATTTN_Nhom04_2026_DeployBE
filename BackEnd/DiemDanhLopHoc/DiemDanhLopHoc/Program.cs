@@ -16,6 +16,27 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+// --- Global Exception Middleware: bắt tất cả lỗi 500, trả JSON thay vì HTML ---
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        context.Response.StatusCode = 500;
+        context.Response.ContentType = "application/json";
+
+        var exceptionFeature = context.Features
+            .Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>();
+
+        var message = exceptionFeature?.Error?.Message ?? "Đã xảy ra lỗi hệ thống!";
+
+        await context.Response.WriteAsJsonAsync(new
+        {
+            statusCode = 500,
+            message
+        });
+    });
+});
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
