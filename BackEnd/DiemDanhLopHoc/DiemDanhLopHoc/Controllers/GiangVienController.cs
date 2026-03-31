@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using DiemDanhLopHoc.Data;
 using DiemDanhLopHoc.Models;
@@ -19,14 +19,16 @@ namespace DiemDanhLopHoc.Controllers
 
         // 1. Lấy danh sách (GET) để kiểm tra
         [HttpGet]
-        public async Task<IActionResult> Get()
+        public async Task<IActionResult> GetAll()
         {
             var danhSach = await _context.GiangViens
-                .Select(gv => new NguoiDungDTOs.GiangVienResponse
+                .Select(gv => new GiangVienResponseDto
                 {
                     MaGv = gv.MaGv,
                     TaiKhoan = gv.TaiKhoan,
                     HoTen = gv.HoTen,
+                    Email = gv.Email,
+                    SoDienThoai = gv.SoDienThoai,
                     TrangThai = gv.TrangThai
                 })
                 .ToListAsync();
@@ -36,7 +38,7 @@ namespace DiemDanhLopHoc.Controllers
 
         // 2. Thêm mới (POST) 
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] NguoiDungDTOs.GiangVienCreateRequest request)
+        public async Task<IActionResult> Create([FromBody] GiangVien request)
         {
             var giangVienMoi = new GiangVien
             {
