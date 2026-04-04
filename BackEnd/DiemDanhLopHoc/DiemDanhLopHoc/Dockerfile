@@ -10,6 +10,8 @@ RUN dotnet restore "DiemDanhLopHoc.csproj"
 COPY . .
 RUN dotnet publish "DiemDanhLopHoc.csproj" -c Release -o out
 
+RUN sed -i 's/DEFAULT@SECLEVEL=2/DEFAULT@SECLEVEL=1/g' /etc/ssl/openssl.cnf || true
+
 # 4. Chuyển sang môi trường Runtime (Siêu nhẹ)
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
