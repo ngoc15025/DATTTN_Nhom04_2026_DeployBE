@@ -1,25 +1,28 @@
-# 1. Dùng SDK .NET để Build
+# 1. Dùng ảnh SDK để build code
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /app
 
-# 2. Copy file cấu hình và tải thư viện (Chỉ định rõ file)
-COPY ["DiemDanhLopHoc.csproj", "./"]
-RUN dotnet restore "DiemDanhLopHoc.csproj"
+# Copy file .csproj và restore các thư viện (nuget)
+COPY *.csproj ./
+RUN dotnet restore
 
-# 3. Copy toàn bộ code còn lại và đóng gói (Ép bỏ qua file .sln)
-COPY . .
-RUN dotnet publish "DiemDanhLopHoc.csproj" -c Release -o out
+# Copy toàn bộ code còn lại và build bản Release
+COPY . ./
+# [LIỀU THUỐC 1]: Chỉ định đích danh file .csproj để Docker nó bơ luôn cái file .sln gây lỗi
+RUN dotnet publish DiemDanhLopHoc.csproj -c Release -o out
 
+# 2. Dùng ảnh ASP.NET siêu nhẹ để chạy thực tế
+FROM mcr.microsoft.com/dotnet/aspnet:8.0
+WORKDIR /app
+
+# [LIỀU THUỐC 2]: Hạ chuẩn bảo mật của Linux xuống để chọc thủng Error 40, kết nối với SmarterASP
 RUN sed -i 's/DEFAULT@SECLEVEL=2/DEFAULT@SECLEVEL=1/g' /etc/ssl/openssl.cnf || true
 
-# 4. Chuyển sang môi trường Runtime (Siêu nhẹ)
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
-WORKDIR /app
 COPY --from=build /app/out .
 
-# 5. Cấu hình Port cho Render
+# Mở cổng 8080 (Mặc định của .NET 8 trên Linux/Docker)
 EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
 
-# 6. Lệnh kích nổ Server
+# Lệnh khởi động server
 ENTRYPOINT ["dotnet", "DiemDanhLopHoc.dll"]
