@@ -1,23 +1,23 @@
-# 1. Dùng ảnh SDK để build code
+# 1. Dùng SDK .NET để Build
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /app
 
-# Copy file .csproj và restore các thư viện (nuget)
-COPY *.csproj ./
-RUN dotnet restore
+# 2. Copy file cấu hình và tải thư viện (Chỉ định rõ file)
+COPY ["DiemDanhLopHoc.csproj", "./"]
+RUN dotnet restore "DiemDanhLopHoc.csproj"
 
-# Copy toàn bộ code còn lại và build bản Release
-COPY . ./
-RUN dotnet publish -c Release -o out
+# 3. Copy toàn bộ code còn lại và đóng gói (Ép bỏ qua file .sln)
+COPY . .
+RUN dotnet publish "DiemDanhLopHoc.csproj" -c Release -o out
 
-# 2. Dùng ảnh ASP.NET siêu nhẹ để chạy thực tế
-FROM mcr.microsoft.com/dotnet/aspnet:8.0
+# 4. Chuyển sang môi trường Runtime (Siêu nhẹ)
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 COPY --from=build /app/out .
 
-# Mở cổng 8080 (Mặc định của .NET 8 trên Linux/Docker)
+# 5. Cấu hình Port cho Render
 EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
 
-# Lệnh khởi động server
+# 6. Lệnh kích nổ Server
 ENTRYPOINT ["dotnet", "DiemDanhLopHoc.dll"]
