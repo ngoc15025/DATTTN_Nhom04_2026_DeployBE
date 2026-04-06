@@ -36,6 +36,272 @@
         }
       }
     },
+    "/api/Auth/change-password": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/BuoiHoc/{id}": {
+      "get": {
+        "tags": [
+          "BuoiHoc"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "BuoiHoc"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/BuoiHoc/class/{maLop}": {
+      "get": {
+        "tags": [
+          "BuoiHoc"
+        ],
+        "parameters": [
+          {
+            "name": "maLop",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/BuoiHoc": {
+      "post": {
+        "tags": [
+          "BuoiHoc"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaoBuoiHocDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaoBuoiHocDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaoBuoiHocDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/DiemDanh/student/{maSv}": {
+      "get": {
+        "tags": [
+          "DiemDanh"
+        ],
+        "parameters": [
+          {
+            "name": "maSv",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/DiemDanh/submit": {
+      "post": {
+        "tags": [
+          "DiemDanh"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitDiemDanhDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitDiemDanhDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitDiemDanhDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/DiemDanh/session/{maBuoiHoc}": {
+      "get": {
+        "tags": [
+          "DiemDanh"
+        ],
+        "parameters": [
+          {
+            "name": "maBuoiHoc",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/DiemDanh/bulk-update": {
+      "post": {
+        "tags": [
+          "DiemDanh"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/DiemDanhDto"
+                }
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/DiemDanhDto"
+                }
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/DiemDanhDto"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/DiemDanh/lecturer-stats/{maGv}": {
+      "get": {
+        "tags": [
+          "DiemDanh"
+        ],
+        "parameters": [
+          {
+            "name": "maGv",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/giangvien": {
       "get": {
         "tags": [
@@ -85,6 +351,67 @@
         "parameters": [
           {
             "name": "maSv",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/giangvien/{maGv}": {
+      "put": {
+        "tags": [
+          "GiangVien"
+        ],
+        "parameters": [
+          {
+            "name": "maGv",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CapNhatGiangVienDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CapNhatGiangVienDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CapNhatGiangVienDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "GiangVien"
+        ],
+        "parameters": [
+          {
+            "name": "maGv",
             "in": "path",
             "required": true,
             "schema": {
@@ -366,6 +693,46 @@
         }
       }
     },
+    "/api/sinhvien/import": {
+      "post": {
+        "tags": [
+          "SinhVien"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/TaoSinhVienDto"
+                }
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/TaoSinhVienDto"
+                }
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/TaoSinhVienDto"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/sinhvien/{maSv}": {
       "put": {
         "tags": [
@@ -430,6 +797,28 @@
   },
   "components": {
     "schemas": {
+      "CapNhatGiangVienDto": {
+        "type": "object",
+        "properties": {
+          "hoLot": {
+            "type": "string",
+            "nullable": true
+          },
+          "tenGv": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "soDienThoai": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "CapNhatSinhVienDto": {
         "type": "object",
         "properties": {
@@ -451,6 +840,64 @@
           },
           "soDienThoai": {
             "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ChangePasswordDto": {
+        "type": "object",
+        "properties": {
+          "taiKhoan": {
+            "type": "string",
+            "nullable": true
+          },
+          "oldPassword": {
+            "type": "string",
+            "nullable": true
+          },
+          "newPassword": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DiemDanhDto": {
+        "type": "object",
+        "properties": {
+          "maDiemDanh": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maBuoiHoc": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maSv": {
+            "type": "string",
+            "nullable": true
+          },
+          "trangThai": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "thoiGianQuet": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "ghiChu": {
+            "type": "string",
+            "nullable": true
+          },
+          "tenMon": {
+            "type": "string",
+            "nullable": true
+          },
+          "ngayHoc": {
+            "type": "string",
+            "format": "date",
             "nullable": true
           }
         },
@@ -478,6 +925,60 @@
             "nullable": true
           },
           "tenMon": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SubmitDiemDanhDto": {
+        "type": "object",
+        "properties": {
+          "maBuoiHoc": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maSv": {
+            "type": "string",
+            "nullable": true
+          },
+          "lat": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "long": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "deviceToken": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TaoBuoiHocDto": {
+        "type": "object",
+        "properties": {
+          "maLop": {
+            "type": "string",
+            "nullable": true
+          },
+          "ngayHoc": {
+            "type": "string",
+            "format": "date"
+          },
+          "gioBatDau": {
+            "type": "string",
+            "format": "time"
+          },
+          "gioKetThuc": {
+            "type": "string",
+            "format": "time"
+          },
+          "ghiChu": {
             "type": "string",
             "nullable": true
           }
@@ -576,6 +1077,14 @@
             "nullable": true
           },
           "lop": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "soDienThoai": {
             "type": "string",
             "nullable": true
           }

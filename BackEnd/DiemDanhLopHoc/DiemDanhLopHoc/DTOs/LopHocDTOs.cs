@@ -1,4 +1,4 @@
-﻿namespace DiemDanhLopHoc.DTOs
+namespace DiemDanhLopHoc.DTOs
 {
   
     public class TaoLopHocDto

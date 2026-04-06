@@ -63,7 +63,9 @@ namespace DiemDanhLopHoc.Controllers
                 MatKhau = request.MatKhau,
                 HoLot = request.HoLot,
                 TenSv = request.TenSv,
-                Lop = request.Lop
+                Lop = request.Lop,
+                Email = request.Email,
+                SoDienThoai = request.SoDienThoai
             };
 
             _context.SinhViens.Add(sinhVienMoi);
@@ -80,6 +82,54 @@ namespace DiemDanhLopHoc.Controllers
                     HoTen = sinhVienMoi.HoLot + " " + sinhVienMoi.TenSv,
                     Lop = sinhVienMoi.Lop
                 }
+            });
+        }
+
+        [HttpPost("import")]
+        public async Task<IActionResult> ImportExcel([FromBody] List<TaoSinhVienDto> requests)
+        {
+            var newStudents = new List<SinhVien>();
+            var errors = new List<string>();
+
+            foreach (var req in requests)
+            {
+                if (await _context.SinhViens.AnyAsync(s => s.MaSv == req.MaSv))
+                {
+                    errors.Add($"MSSV {req.MaSv} đã tồn tại.");
+                    continue;
+                }
+
+                if (await _context.SinhViens.AnyAsync(s => s.TaiKhoan == req.TaiKhoan))
+                {
+                    errors.Add($"Tài khoản {req.TaiKhoan} đã có người sử dụng.");
+                    continue;
+                }
+
+                newStudents.Add(new SinhVien
+                {
+                    MaSv = req.MaSv,
+                    TaiKhoan = req.TaiKhoan,
+                    MatKhau = req.MatKhau,
+                    HoLot = req.HoLot,
+                    TenSv = req.TenSv,
+                    Lop = req.Lop,
+                    Email = req.Email,
+                    SoDienThoai = req.SoDienThoai
+                });
+            }
+
+            if (newStudents.Any())
+            {
+                _context.SinhViens.AddRange(newStudents);
+                await _context.SaveChangesAsync();
+            }
+
+            return Ok(new 
+            { 
+                success = true, 
+                message = $"Đã nhập thành công {newStudents.Count} sinh viên. " + (errors.Any() ? $"{errors.Count} lỗi xảy ra." : ""),
+                imported = newStudents.Count, 
+                errors = errors 
             });
         }
 

@@ -1,4 +1,4 @@
-﻿using DiemDanhLopHoc.Data;
+using DiemDanhLopHoc.Data;
 using DiemDanhLopHoc.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -62,6 +62,22 @@ namespace DiemDanhLopHoc.Controllers
 
             // 4. Tìm cả 3 bảng không ra ai
             return Unauthorized(new { success = false, message = "Tài khoản hoặc mật khẩu không chính xác!" });
+        }
+
+        [HttpPost("change-password")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto request)
+        {
+            // Tìm trong 3 bảng
+            var admin = await _context.QuanTriViens.FirstOrDefaultAsync(x => x.TaiKhoan == request.TaiKhoan && x.MatKhau == request.OldPassword);
+            if (admin != null) { admin.MatKhau = request.NewPassword; await _context.SaveChangesAsync(); return Ok(new { success = true, message = "Đổi mật khẩu thành công!" }); }
+
+            var gv = await _context.GiangViens.FirstOrDefaultAsync(x => x.TaiKhoan == request.TaiKhoan && x.MatKhau == request.OldPassword);
+            if (gv != null) { gv.MatKhau = request.NewPassword; await _context.SaveChangesAsync(); return Ok(new { success = true, message = "Đổi mật khẩu thành công!" }); }
+
+            var sv = await _context.SinhViens.FirstOrDefaultAsync(x => x.TaiKhoan == request.TaiKhoan && x.MatKhau == request.OldPassword);
+            if (sv != null) { sv.MatKhau = request.NewPassword; await _context.SaveChangesAsync(); return Ok(new { success = true, message = "Đổi mật khẩu thành công!" }); }
+
+            return BadRequest(new { success = false, message = "Mật khẩu cũ không chính xác!" });
         }
 
         // --- HÀM HỖ TRỢ ĐẺ TOKEN (Chỉ giữ lại 1 hàm chuẩn 4 tham số này) ---

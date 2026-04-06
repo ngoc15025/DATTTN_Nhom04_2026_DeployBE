@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using DiemDanhLopHoc.Data;
 using DiemDanhLopHoc.Models;
@@ -67,6 +67,41 @@ namespace DiemDanhLopHoc.Controllers
             await _context.SaveChangesAsync();
 
             return Ok(new { success = true, message = "Đã reset thiết bị. Sinh viên có thể đăng ký máy mới!" });
+        }
+
+        // 4. Cập nhật (PUT)
+        [HttpPut("{maGv}")]
+        public async Task<IActionResult> Update(string maGv, [FromBody] CapNhatGiangVienDto request)
+        {
+            var gv = await _context.GiangViens.FindAsync(maGv);
+            if (gv == null) return NotFound(new { success = false, message = "Không tìm thấy giảng viên." });
+
+            gv.HoLot = request.HoLot;
+            gv.TenGv = request.TenGv;
+            gv.Email = request.Email;
+            gv.SoDienThoai = request.SoDienThoai;
+
+            await _context.SaveChangesAsync();
+            return Ok(new { success = true, message = "Cập nhật hồ sơ thành công!" });
+        }
+
+        // 5. Xóa (DELETE)
+        [HttpDelete("{maGv}")]
+        public async Task<IActionResult> Delete(string maGv)
+        {
+            var gv = await _context.GiangViens.FindAsync(maGv);
+            if (gv == null) return NotFound(new { success = false, message = "Không tìm thấy giảng viên." });
+
+            try
+            {
+                _context.GiangViens.Remove(gv);
+                await _context.SaveChangesAsync();
+                return Ok(new { success = true, message = "Đã xóa giảng viên thành công." });
+            }
+            catch (DbUpdateException)
+            {
+                return Conflict(new { success = false, message = "Không thể xóa vì giảng viên này đang phụ trách lớp học." });
+            }
         }
     }
 }

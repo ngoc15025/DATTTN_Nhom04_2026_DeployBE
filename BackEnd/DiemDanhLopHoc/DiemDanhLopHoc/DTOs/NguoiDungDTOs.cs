@@ -1,4 +1,4 @@
-﻿namespace DiemDanhLopHoc.DTOs
+namespace DiemDanhLopHoc.DTOs
 {
     // DTO để trả về danh sách Giảng Viên (Giấu cột MatKhau)
     public class GiangVienResponseDto
@@ -70,6 +70,8 @@
         public string HoLot { get; set; } = null!;
         public string TenSv { get; set; } = null!;
         public string Lop { get; set; } = null!;
+        public string? Email { get; set; }
+        public string? SoDienThoai { get; set; }
     }
 
     // DTO cập nhật (Tách HoLot, TenSv)
@@ -80,5 +82,20 @@
         public string Lop { get; set; } = null!;
         public string? Email { get; set; }
         public string? SoDienThoai { get; set; }
+    }
+
+    public class CapNhatGiangVienDto
+    {
+        public string HoLot { get; set; } = null!;
+        public string TenGv { get; set; } = null!;
+        public string? Email { get; set; }
+        public string? SoDienThoai { get; set; }
+    }
+
+    public class ChangePasswordDto
+    {
+        public string TaiKhoan { get; set; } = null!;
+        public string OldPassword { get; set; } = null!;
+        public string NewPassword { get; set; } = null!;
     }
 }

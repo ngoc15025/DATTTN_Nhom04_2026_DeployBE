@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using DiemDanhLopHoc.Models;
 using Microsoft.EntityFrameworkCore;
@@ -30,7 +30,10 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<SinhVien> SinhViens { get; set; }
 
-    
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        // Connection string should be configured in Program.cs
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
