@@ -63,7 +63,6 @@ namespace DiemDanhLopHoc.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] TaoLopHocDto request) // Dùng DTO thay vì LopHoc
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
                 // 1. Chuyển đổi dữ liệu từ DTO sang Model gốc
@@ -77,34 +76,32 @@ namespace DiemDanhLopHoc.Controllers
                     NgayKetThuc = request.NgayKetThuc,
                     GioBatDau = request.GioBatDau,
                     GioKetThuc = request.GioKetThuc,
-                    SoBuoiHoc = request.SoBuoiHoc
+                    SoBuoiHoc = request.SoBuoiHoc,
+                    BuoiHocs = new List<BuoiHoc>()
                 };
 
-                _context.LopHocs.Add(lopHocMoi);
-
-                // 2. Thuật toán tự đẻ Buổi học (Auto-Scheduling)
+                // 2. Thuật toán tự đẻ Buổi học thông qua Navigation Property 
+                // Cách này đảm bảo EF Core chèn LopHoc TRƯỚC, BuoiHoc SAU, tránh lỗi Foreign Key
                 for (int i = 0; i < request.SoBuoiHoc; i++)
                 {
                     var buoiHocMoi = new BuoiHoc
                     {
-                        MaLop = request.MaLop,
                         NgayHoc = request.NgayBatDau.AddDays(i * 7),
                         GioBatDau = request.GioBatDau,
                         GioKetThuc = request.GioKetThuc,
                         LoaiBuoiHoc = 0,
                         TrangThaiBh = 0
                     };
-                    _context.BuoiHocs.Add(buoiHocMoi);
+                    lopHocMoi.BuoiHocs.Add(buoiHocMoi);
                 }
 
+                _context.LopHocs.Add(lopHocMoi);
                 await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
 
                 return Ok(new { success = true, message = $"Đã tạo lớp và tự động lập lịch {request.SoBuoiHoc} buổi học!" });
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
                 return BadRequest(new { success = false, message = ex.Message });
             }
         }
