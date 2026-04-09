@@ -82,7 +82,37 @@ namespace DiemDanhLopHoc.Controllers
             return Ok(new { success = true, message = "Thêm buổi học thành công!", data = buoiHocMoi });
         }
 
-        // 3. Xóa buổi học
+        // 3. L\u1ea5y danh s\u00e1ch bu\u1ed5i h\u1ecdc h\u00f4m nay c\u1ee7a m\u1ed9t gi\u1ea3ng vi\u00ean
+        [HttpGet("today/{maGv}")]
+        public async Task<IActionResult> GetTodayByLecturer(string maGv)
+        {
+            var today = DateOnly.FromDateTime(DateTime.Today);
+
+            var danhSach = await _context.BuoiHocs
+                .Include(b => b.MaLopNavigation)
+                    .ThenInclude(l => l.MaMonNavigation)
+                .Include(b => b.MaLopNavigation.MaGvNavigation)
+                .Where(b => b.NgayHoc == today && b.MaLopNavigation.MaGv == maGv)
+                .OrderBy(b => b.GioBatDau)
+                .Select(b => new
+                {
+                    maBuoiHoc = b.MaBuoiHoc,
+                    maLop = b.MaLop,
+                    tenLop = b.MaLopNavigation.TenLop,
+                    tenMon = b.MaLopNavigation.MaMonNavigation != null ? b.MaLopNavigation.MaMonNavigation.TenMon : "N/A",
+                    ngayHoc = b.NgayHoc,
+                    gioBatDau = b.GioBatDau,
+                    gioKetThuc = b.GioKetThuc,
+                    trangThaiBh = b.TrangThaiBh, // 0: Ch\u01b0a \u0111i\u1ec3m danh, 1: \u0110\u00e3 \u0111i\u1ec3m danh
+                    loaiBuoiHoc = b.LoaiBuoiHoc,
+                    ghiChu = b.GhiChu
+                })
+                .ToListAsync();
+
+            return Ok(new { success = true, data = danhSach });
+        }
+
+        // 4. Xóa buổi học
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
