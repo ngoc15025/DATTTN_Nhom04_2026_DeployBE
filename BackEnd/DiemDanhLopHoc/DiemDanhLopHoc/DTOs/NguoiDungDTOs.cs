@@ -90,6 +90,7 @@ namespace DiemDanhLopHoc.DTOs
         public string TenGv { get; set; } = null!;
         public string? Email { get; set; }
         public string? SoDienThoai { get; set; }
+        public int? TrangThai { get; set; } // null = không thay đổi, 1 = Hoạt động, 0 = Bị khóa
     }
 
     public class ChangePasswordDto
