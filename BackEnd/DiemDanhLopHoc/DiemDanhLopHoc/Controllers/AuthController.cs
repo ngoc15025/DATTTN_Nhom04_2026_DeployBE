@@ -45,6 +45,11 @@ namespace DiemDanhLopHoc.Controllers
                 .FirstOrDefaultAsync(x => x.TaiKhoan == request.TaiKhoan && x.MatKhau == request.MatKhau);
             if (giangVien != null)
             {
+                // Kiểm tra tài khoản bị khóa
+                if (giangVien.TrangThai != 1)
+                {
+                    return Unauthorized(new { success = false, message = "Tài khoản giảng viên này đã bị khóa. Vui lòng liên hệ Quản trị viên." });
+                }
                 var hoTenDayDu = $"{giangVien.HoLot} {giangVien.TenGv}";
                 var token = GenerateJwtToken(giangVien.TaiKhoan, "Lecturer", hoTenDayDu, giangVien.MaGv);
                 return Ok(new { success = true, data = new { token, role = "Lecturer", name = hoTenDayDu } });

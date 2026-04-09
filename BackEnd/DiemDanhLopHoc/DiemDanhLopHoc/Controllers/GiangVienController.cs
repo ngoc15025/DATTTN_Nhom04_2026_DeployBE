@@ -80,6 +80,8 @@ namespace DiemDanhLopHoc.Controllers
             gv.TenGv = request.TenGv;
             gv.Email = request.Email;
             gv.SoDienThoai = request.SoDienThoai;
+            if (request.TrangThai.HasValue)
+                gv.TrangThai = request.TrangThai.Value;
 
             await _context.SaveChangesAsync();
             return Ok(new { success = true, message = "Cập nhật hồ sơ thành công!" });
