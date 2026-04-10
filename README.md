@@ -33,12 +33,12 @@ Một giải pháp toàn diện giúp tự động hóa và minh bạch hóa quy
 
 ## 🛠️ Công nghệ sử dụng
 
-* **Backend:** C# / ASP.NET Core Web API (.NET 8/9)
+* **Backend:** C# / ASP.NET Core Web API (.NET 8.0)
 * **Database:** Microsoft SQL Server (Entity Framework Core)
 * **Real-time Communication:** SignalR
 * **Authentication:** JSON Web Tokens (JWT)
 * **Deployment:** Docker / Render / IIS (SmarterASP)
-* **Frontend/Mobile:** *(Cập nhật thêm công nghệ FE của nhóm vào đây, VD: ReactJS / React Native)*
+* **Frontend/Mobile:** ReactJS / React Native
 
 ---
 
