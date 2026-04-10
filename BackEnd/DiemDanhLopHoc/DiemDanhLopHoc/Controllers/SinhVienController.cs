@@ -167,5 +167,29 @@ namespace DiemDanhLopHoc.Controllers
                 return Conflict(new { success = false, message = "Không thể xóa vì sinh viên này đang liên kết với lớp học/điểm danh." });
             }
         }
+        [HttpGet("{maSv}/classes")]
+        public async Task<IActionResult> GetStudentClasses(string maSv)
+        {
+            var sinhVien = await _context.SinhViens
+                .Include(s => s.MaLops)
+                    .ThenInclude(l => l.MaMonNavigation)
+                .Include(s => s.MaLops)
+                    .ThenInclude(l => l.MaGvNavigation)
+                .FirstOrDefaultAsync(s => s.MaSv == maSv);
+
+            if (sinhVien == null) return NotFound(new { success = false, message = "Không tìm thấy sinh viên." });
+
+            var data = sinhVien.MaLops.Select(l => new LopHocDto
+            {
+                MaLop = l.MaLop,
+                TenLop = l.TenLop,
+                MaMon = l.MaMon,
+                TenMon = l.MaMonNavigation?.TenMon,
+                MaGv = l.MaGv,
+                TenGiangVien = l.MaGvNavigation != null ? (l.MaGvNavigation.HoLot + " " + l.MaGvNavigation.TenGv) : "Chưa phân công"
+            }).ToList();
+
+            return Ok(new { success = true, data });
+        }
     }
 }
