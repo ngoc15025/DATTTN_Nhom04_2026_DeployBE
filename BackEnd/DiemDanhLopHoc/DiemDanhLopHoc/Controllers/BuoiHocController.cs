@@ -113,7 +113,20 @@ namespace DiemDanhLopHoc.Controllers
             return Ok(new { success = true, data = danhSach });
         }
 
-        // 4. Xóa buổi học
+        // 4. Cập nhật trạng thái buổi học (Mở QR, Chốt sổ)
+        [HttpPut("{id}/status")]
+        public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateStatusDto request)
+        {
+            var buoiHoc = await _context.BuoiHocs.FindAsync(id);
+            if (buoiHoc == null) return NotFound(new { message = "Không tìm thấy buổi học." });
+
+            buoiHoc.TrangThaiBh = request.TrangThaiBh;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { success = true, message = "Đã cập nhật trạng thái buổi học!" });
+        }
+
+        // 5. Xóa buổi học
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
