@@ -20,4 +20,9 @@ namespace DiemDanhLopHoc.DTOs
         public TimeOnly GioKetThuc { get; set; }
         public string? GhiChu { get; set; }
     }
+
+    public class UpdateStatusDto
+    {
+        public int TrangThaiBh { get; set; } // 0: CĐD, 1: Mở QR, 2: Chốt sổ
+    }
 }
