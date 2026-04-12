@@ -34,6 +34,7 @@ namespace DiemDanhLopHoc.Controllers
                 ngayHoc = buoiHoc.NgayHoc,
                 gioBatDau = buoiHoc.GioBatDau,
                 gioKetThuc = buoiHoc.GioKetThuc,
+                trangThaiBh = buoiHoc.TrangThaiBh, // 0: Chưa điểm danh, 1: Đang mở QR, 2: Đã chốt sổ
                 ghiChu = buoiHoc.GhiChu
             });
         }

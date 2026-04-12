@@ -85,6 +85,50 @@ namespace DiemDanhLopHoc.Controllers
             return BadRequest(new { success = false, message = "Mật khẩu cũ không chính xác!" });
         }
 
+        // Đăng ký thiết bị: Lưu Public Key (ECDSA SPKI Base64) vào cột MaThietBi
+        [HttpPost("register-device")]
+        public async Task<IActionResult> RegisterDevice([FromBody] RegisterDeviceDto request)
+        {
+            if (string.IsNullOrWhiteSpace(request.MaSv) || string.IsNullOrWhiteSpace(request.PublicKeyBase64))
+                return BadRequest(new { success = false, message = "MaSv và PublicKeyBase64 không được để trống." });
+
+            var sinhVien = await _context.SinhViens.FindAsync(request.MaSv);
+            if (sinhVien == null)
+                return NotFound(new { success = false, message = "Không tìm thấy sinh viên." });
+
+            // RÀO CHẮN BẢO MẬT: Không cho phép ghi đè nếu đã có thiết bị
+            if (!string.IsNullOrEmpty(sinhVien.MaThietBi))
+            {
+                // Trả về lỗi nhắc sinh viên liên hệ giảng viên
+                return BadRequest(new { success = false, message = "Tài khoản của bạn đã được liên kết với một thiết bị. Vui lòng liên hệ Giảng viên/Giáo vụ để yêu cầu Reset thiết bị." });
+            }
+
+            // Validate định dạng Base64 hợp lệ
+            try { Convert.FromBase64String(request.PublicKeyBase64); }
+            catch { return BadRequest(new { success = false, message = "PublicKey không đúng định dạng Base64." }); }
+
+            // Lưu Public Key vào cột MaThietBi
+            sinhVien.MaThietBi = request.PublicKeyBase64;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { success = true, message = "Đăng ký thiết bị thành công!" });
+        }
+
+        // Reset thiết bị: Chỉ định cho Giảng viên / Admin dùng để mở khóa cấp lại thiết bị
+        [HttpPost("reset-device/{maSv}")]
+        public async Task<IActionResult> ResetDevice(string maSv)
+        {
+            var sinhVien = await _context.SinhViens.FindAsync(maSv);
+            if (sinhVien == null)
+                return NotFound(new { success = false, message = "Không tìm thấy sinh viên." });
+            
+            // Xóa Public Key cũ, đưa về NULL
+            sinhVien.MaThietBi = null;
+            await _context.SaveChangesAsync();
+            
+            return Ok(new { success = true, message = $"Đã reset thiết bị cho SV {maSv}. Sinh viên có thể đăng nhập để đăng ký thiết bị mới." });
+        }
+
         // --- HÀM HỖ TRỢ ĐẺ TOKEN (Chỉ giữ lại 1 hàm chuẩn 4 tham số này) ---
         private string GenerateJwtToken(string taiKhoan, string role, string hoTen, string id)
         {

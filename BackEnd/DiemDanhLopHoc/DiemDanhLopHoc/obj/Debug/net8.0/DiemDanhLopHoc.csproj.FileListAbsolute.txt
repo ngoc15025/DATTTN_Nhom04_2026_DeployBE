@@ -279,4 +279,3 @@ D:\DATTTN_NHOM04_2026\BackEnd\DiemDanhLopHoc\obj\Debug\net8.0\refint\DiemDanhLop
 D:\DATTTN_NHOM04_2026\BackEnd\DiemDanhLopHoc\obj\Debug\net8.0\DiemDanhLopHoc.pdb
 D:\DATTTN_NHOM04_2026\BackEnd\DiemDanhLopHoc\obj\Debug\net8.0\DiemDanhLopHoc.genruntimeconfig.cache
 D:\DATTTN_NHOM04_2026\BackEnd\DiemDanhLopHoc\obj\Debug\net8.0\ref\DiemDanhLopHoc.dll
-D:\DATTTN_NHOM04_2026\BackEnd\DiemDanhLopHoc\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt

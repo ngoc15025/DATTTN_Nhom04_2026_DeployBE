@@ -93,10 +93,18 @@ namespace DiemDanhLopHoc.DTOs
         public int? TrangThai { get; set; } // null = không thay đổi, 1 = Hoạt động, 0 = Bị khóa
     }
 
+
     public class ChangePasswordDto
     {
         public string TaiKhoan { get; set; } = null!;
         public string OldPassword { get; set; } = null!;
         public string NewPassword { get; set; } = null!;
+    }
+
+    // DTO cho đăng ký thiết bị (Web Crypto - ECDSA Public Key)
+    public class RegisterDeviceDto
+    {
+        public string MaSv { get; set; } = null!;
+        public string PublicKeyBase64 { get; set; } = null!; // SPKI format, tương thích với .NET ECDsa.ImportSubjectPublicKeyInfo
     }
 }

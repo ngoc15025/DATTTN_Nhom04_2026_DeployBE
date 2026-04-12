@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using DiemDanhLopHoc.Data;
 using DiemDanhLopHoc.Models;
 using DiemDanhLopHoc.DTOs;
+using System.Security.Cryptography;
 
 namespace DiemDanhLopHoc.Controllers
 {
@@ -43,33 +44,83 @@ namespace DiemDanhLopHoc.Controllers
             return Ok(history);
         }
 
-        // 2. Chấm điểm danh (Dùng cho QR quét từ SV hoặc Giảng viên tích tay)
+        // 2. Chấm điểm danh (Dùng cho QR quét từ SV — Có xác thực chữ ký số ECDSA)
         [HttpPost("submit")]
         public async Task<IActionResult> Submit([FromBody] SubmitDiemDanhDto request)
         {
+            var buoiHoc = await _context.BuoiHocs.FindAsync(request.MaBuoiHoc);
+            if (buoiHoc == null) return NotFound(new { message = "Không tìm thấy buổi học." });
+
+            // Kiểm tra buổi học có đang mở QR chưa (TrangThaiBh == 1)
+            if (buoiHoc.TrangThaiBh != 1)
+                return BadRequest(new { message = "Buổi học này chưa mở điểm danh hoặc đã chốt sổ. Vui lòng liên hệ giảng viên." });
+
             // Kiểm tra xem đã điểm danh buổi này chưa
             var tonTai = await _context.DiemDanhs
                 .AnyAsync(d => d.MaBuoiHoc == request.MaBuoiHoc && d.MaSv == request.MaSv);
             if (tonTai) return BadRequest(new { message = "Bạn đã điểm danh buổi học này rồi!" });
 
-            var buoiHoc = await _context.BuoiHocs.FindAsync(request.MaBuoiHoc);
-            if (buoiHoc == null) return NotFound(new { message = "Không tìm thấy buổi học." });
+            // ==== XÁC THỰC CHỮ KÝ SỐ ECDSA ====
+            var sinhVien = await _context.SinhViens.FindAsync(request.MaSv);
+            if (sinhVien == null)
+                return NotFound(new { message = "Không tìm thấy sinh viên." });
 
-            var ketQua = new DiemDanh
+            // Nếu sinh viên chưa đăng ký thiết bị (chưa có Public Key)
+            if (string.IsNullOrEmpty(sinhVien.MaThietBi))
+                return StatusCode(403, new { message = "Thiết bị chưa được đăng ký. Vui lòng đăng xuất và đăng nhập lại." });
+
+            // Nếu request thiếu chữ ký
+            if (string.IsNullOrEmpty(request.Signature) || string.IsNullOrEmpty(request.RawPayload))
+                return StatusCode(403, new { message = "Yêu cầu thiếu chữ ký số. Không thể xác thực thiết bị." });
+
+            try
             {
-                MaBuoiHoc = request.MaBuoiHoc,
-                MaSv = request.MaSv,
-                TrangThai = 1, // Mặc định: Có mặt
-                ThoiGianQuet = DateTime.Now,
-                ToaDoSvLat = request.Lat,
-                ToaDoSvLong = request.Long,
-                MaThietBiLog = request.DeviceToken
-            };
+                // Nạp Public Key từ cột MaThietBi (SPKI Base64)
+                var publicKeyBytes = Convert.FromBase64String(sinhVien.MaThietBi);
+                using var ecdsa = ECDsa.Create();
+                ecdsa.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
 
-            _context.DiemDanhs.Add(ketQua);
-            await _context.SaveChangesAsync();
+                // Xác thực chữ ký
+                var payloadBytes = System.Text.Encoding.UTF8.GetBytes(request.RawPayload);
+                var signatureBytes = Convert.FromBase64String(request.Signature);
+                bool isValid = ecdsa.VerifyData(payloadBytes, signatureBytes, HashAlgorithmName.SHA256);
+
+                if (!isValid)
+                {
+                    // GHI NHẬN GIAN LẬN: Chữ ký không khớp với Public Key đã đăng ký
+                    await RecordAttendance(request.MaBuoiHoc, request.MaSv, 5, request.Signature, request.Lat, request.Long, "Phát hiện ký bằng máy lạ!");
+                    return StatusCode(403, new { message = "Chữ ký số không hợp lệ. Thiết bị không được phép điểm danh." });
+                }
+            }
+            catch (Exception ex)
+            {
+                // GHI NHẬN GIAN LẬN: Lỗi kỹ thuật khi xác thực (thường do giả mạo payload)
+                await RecordAttendance(request.MaBuoiHoc, request.MaSv, 5, request.Signature, request.Lat, request.Long, "Lỗi xác thực: " + ex.Message);
+                return StatusCode(403, new { message = "Lỗi xác thực thiết bị: " + ex.Message });
+            }
+            // ==== KẾT THÚC XÁC THỰC ====
+
+            await RecordAttendance(request.MaBuoiHoc, request.MaSv, 1, request.Signature, request.Lat, request.Long);
 
             return Ok(new { success = true, message = "Điểm danh thành công!" });
+        }
+
+        // Hàm phụ dùng chung để ghi nhận điểm danh / gian lận
+        private async Task RecordAttendance(int maBuoiHoc, string maSv, int trangThai, string? signature, double? lat, double? lng, string? ghiChu = null)
+        {
+            var ketQua = new DiemDanh
+            {
+                MaBuoiHoc = maBuoiHoc,
+                MaSv = maSv,
+                TrangThai = trangThai,
+                ThoiGianQuet = DateTime.Now,
+                ToaDoSvLat = lat,
+                ToaDoSvLong = lng,
+                MaThietBiLog = signature?[..Math.Min(255, signature.Length)],
+                GhiChu = ghiChu
+            };
+            _context.DiemDanhs.Add(ketQua);
+            await _context.SaveChangesAsync();
         }
 
         // 3. Lấy danh sách điểm danh của một buổi học (Dùng cho giảng viên xem sổ tay)
@@ -78,6 +129,16 @@ namespace DiemDanhLopHoc.Controllers
         {
             var data = await _context.DiemDanhs
                 .Where(d => d.MaBuoiHoc == maBuoiHoc)
+                .Select(d => new DiemDanhDto
+                {
+                    MaDiemDanh = d.MaDiemDanh,
+                    MaBuoiHoc = d.MaBuoiHoc,
+                    MaSv = d.MaSv,
+                    TrangThai = d.TrangThai,
+                    ThoiGianQuet = d.ThoiGianQuet,
+                    GhiChu = d.GhiChu,
+                    MaThietBiLog = d.MaThietBiLog
+                })
                 .ToListAsync();
             return Ok(data);
         }
