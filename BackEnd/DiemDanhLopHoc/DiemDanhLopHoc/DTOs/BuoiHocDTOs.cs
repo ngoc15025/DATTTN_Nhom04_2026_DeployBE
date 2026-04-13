@@ -24,5 +24,7 @@ namespace DiemDanhLopHoc.DTOs
     public class UpdateStatusDto
     {
         public int TrangThaiBh { get; set; } // 0: CĐD, 1: Mở QR, 2: Chốt sổ
+        public double? Lat { get; set; }
+        public double? Long { get; set; }
     }
 }
