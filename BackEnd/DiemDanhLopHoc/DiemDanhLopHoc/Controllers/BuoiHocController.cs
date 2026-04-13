@@ -121,6 +121,14 @@ namespace DiemDanhLopHoc.Controllers
             if (buoiHoc == null) return NotFound(new { message = "Không tìm thấy buổi học." });
 
             buoiHoc.TrangThaiBh = request.TrangThaiBh;
+            
+            // Nếu Mở QR, lưu Tọa độ Gốc của phòng học để xác thực Sinh viên
+            if (request.TrangThaiBh == 1 && request.Lat.HasValue && request.Long.HasValue)
+            {
+                buoiHoc.ToaDoGocLat = request.Lat;
+                buoiHoc.ToaDoGocLong = request.Long;
+            }
+
             await _context.SaveChangesAsync();
 
             return Ok(new { success = true, message = "Đã cập nhật trạng thái buổi học!" });
