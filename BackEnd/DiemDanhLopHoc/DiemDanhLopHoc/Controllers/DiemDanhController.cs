@@ -60,6 +60,18 @@ namespace DiemDanhLopHoc.Controllers
                 .AnyAsync(d => d.MaBuoiHoc == request.MaBuoiHoc && d.MaSv == request.MaSv);
             if (tonTai) return BadRequest(new { message = "Bạn đã điểm danh buổi học này rồi!" });
 
+            // ==== KIỂM TRA ĐỊA LÝ (GPS) BÁN KÍNH 30 MÉT ====
+            if (buoiHoc.ToaDoGocLat.HasValue && buoiHoc.ToaDoGocLong.HasValue && request.Lat.HasValue && request.Long.HasValue)
+            {
+                double distance = CalculateDistance(buoiHoc.ToaDoGocLat.Value, buoiHoc.ToaDoGocLong.Value, request.Lat.Value, request.Long.Value);
+                if (distance > 30)
+                {
+                    // Ghi nhận Gian lận (5)
+                    await RecordAttendance(request.MaBuoiHoc, request.MaSv, 5, request.Signature, request.Lat, request.Long, $"Gian lận vị trí: Cách phòng học {Math.Round(distance)} mét.");
+                    return StatusCode(403, new { message = $"Bạn không ở trong phạm vi phòng học. (Cách xa {Math.Round(distance)} mét)." });
+                }
+            }
+
             // ==== XÁC THỰC CHỮ KÝ SỐ ECDSA ====
             var sinhVien = await _context.SinhViens.FindAsync(request.MaSv);
             if (sinhVien == null)
@@ -213,6 +225,21 @@ namespace DiemDanhLopHoc.Controllers
                 avgAttendance,
                 warningStudents = warningCount
             });
+        }
+
+        // --- Helper: Thuật toán Haversine tính khoảng cách giữa 2 tọa độ GPS (Đơn vị: Mét) ---
+        private double CalculateDistance(double lat1, double lon1, double lat2, double lon2)
+        {
+            var R = 6371e3; // Bán kính Trái đất tính bằng mét
+            var dLat = (lat2 - lat1) * Math.PI / 180;
+            var dLon = (lon2 - lon1) * Math.PI / 180;
+            
+            var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
+                    Math.Cos(lat1 * Math.PI / 180) * Math.Cos(lat2 * Math.PI / 180) *
+                    Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
+                    
+            var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+            return R * c; // Trả về khoảng cách mét
         }
     }
 }
