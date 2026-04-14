@@ -37,6 +37,24 @@ namespace DiemDanhLopHoc.Controllers
             return Ok(danhSach); 
         }
 
+        [HttpGet("{maGv}")]
+        public async Task<IActionResult> GetById(string maGv)
+        {
+            var gv = await _context.GiangViens.FindAsync(maGv);
+            if (gv == null) return NotFound(new { success = false, message = "Không tìm thấy giảng viên." });
+
+            return Ok(new { success = true, data = new GiangVienResponseDto
+            {
+                MaGv = gv.MaGv,
+                TaiKhoan = gv.TaiKhoan,
+                HoLot = gv.HoLot,
+                TenGv = gv.TenGv,
+                Email = gv.Email,
+                SoDienThoai = gv.SoDienThoai,
+                TrangThai = gv.TrangThai
+            }});
+        }
+
         // 2. Thêm mới (POST) 
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] TaoGiangVienDto request) 
