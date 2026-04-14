@@ -96,11 +96,20 @@ namespace DiemDanhLopHoc.Controllers
             if (sinhVien == null)
                 return NotFound(new { success = false, message = "Không tìm thấy sinh viên." });
 
-            // RÀO CHẮN BẢO MẬT: Không cho phép ghi đè nếu đã có thiết bị
+            // RÀO CHẮN BẢO MẬT 1: Không cho phép dùng chung thiết bị
+            var deviceAlreadyInUse = await _context.SinhViens.AnyAsync(s => s.MaThietBi == request.PublicKeyBase64 && s.MaSv != request.MaSv);
+            if (deviceAlreadyInUse)
+            {
+                return BadRequest(new { success = false, message = "Lỗi bảo mật: Thiết bị này đang được sử dụng bởi một tài khoản sinh viên khác. Bạn không thể dùng chung thiết bị!" });
+            }
+
+            // RÀO CHẮN BẢO MẬT 2: Không cho phép ghi đè nếu đã có thiết bị khác
             if (!string.IsNullOrEmpty(sinhVien.MaThietBi))
             {
-                // Trả về lỗi nhắc sinh viên liên hệ giảng viên
-                return BadRequest(new { success = false, message = "Tài khoản của bạn đã được liên kết với một thiết bị. Vui lòng liên hệ Giảng viên/Giáo vụ để yêu cầu Reset thiết bị." });
+                if (sinhVien.MaThietBi == request.PublicKeyBase64)
+                    return Ok(new { success = true, message = "Thiết bị đã được đồng bộ từ trước." });
+                else
+                    return BadRequest(new { success = false, message = "Tài khoản của bạn đã được liên kết với một thiết bị khác. Vui lòng liên hệ Giảng viên/Giáo vụ để yêu cầu Reset thiết bị." });
             }
 
             // Validate định dạng Base64 hợp lệ
