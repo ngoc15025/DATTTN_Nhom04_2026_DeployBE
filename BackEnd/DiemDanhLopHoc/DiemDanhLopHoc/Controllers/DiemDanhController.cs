@@ -64,7 +64,7 @@ namespace DiemDanhLopHoc.Controllers
             if (buoiHoc.ToaDoGocLat.HasValue && buoiHoc.ToaDoGocLong.HasValue && request.Lat.HasValue && request.Long.HasValue)
             {
                 double distance = CalculateDistance(buoiHoc.ToaDoGocLat.Value, buoiHoc.ToaDoGocLong.Value, request.Lat.Value, request.Long.Value);
-                if (distance > 30)
+                if (distance > 60)
                 {
                     // Ghi nhận Gian lận (5)
                     await RecordAttendance(request.MaBuoiHoc, request.MaSv, 5, request.Signature, request.Lat, request.Long, $"Gian lận vị trí: Cách phòng học {Math.Round(distance)} mét.");
