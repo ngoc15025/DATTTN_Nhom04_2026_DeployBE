@@ -60,15 +60,18 @@ namespace DiemDanhLopHoc.Controllers
                 .AnyAsync(d => d.MaBuoiHoc == request.MaBuoiHoc && d.MaSv == request.MaSv);
             if (tonTai) return BadRequest(new { message = "Bạn đã điểm danh buổi học này rồi!" });
 
-            // ==== KIỂM TRA ĐỊA LÝ (GPS) BÁN KÍNH 30 MÉT ====
+            bool isGpsFraud = false;
+            bool isDeviceFraud = false;
+            string deviceErrorMessage = null;
+
+            // ==== KIỂM TRA ĐỊA LÝ (GPS) BÁN KÍNH 60 MÉT ====
+            double? calculatedDistance = null;
             if (buoiHoc.ToaDoGocLat.HasValue && buoiHoc.ToaDoGocLong.HasValue && request.Lat.HasValue && request.Long.HasValue)
             {
-                double distance = CalculateDistance(buoiHoc.ToaDoGocLat.Value, buoiHoc.ToaDoGocLong.Value, request.Lat.Value, request.Long.Value);
-                if (distance > 60)
+                calculatedDistance = CalculateDistance(buoiHoc.ToaDoGocLat.Value, buoiHoc.ToaDoGocLong.Value, request.Lat.Value, request.Long.Value);
+                if (calculatedDistance > 60)
                 {
-                    // Ghi nhận Gian lận (5)
-                    await RecordAttendance(request.MaBuoiHoc, request.MaSv, 5, request.Signature, request.Lat, request.Long, $"Gian lận vị trí: Cách phòng học {Math.Round(distance)} mét.");
-                    return StatusCode(403, new { message = $"Bạn không ở trong phạm vi phòng học. (Cách xa {Math.Round(distance)} mét)." });
+                    isGpsFraud = true;
                 }
             }
 
@@ -77,44 +80,63 @@ namespace DiemDanhLopHoc.Controllers
             if (sinhVien == null)
                 return NotFound(new { message = "Không tìm thấy sinh viên." });
 
-            // Nếu sinh viên chưa đăng ký thiết bị (chưa có Public Key)
             if (string.IsNullOrEmpty(sinhVien.MaThietBi))
-                return StatusCode(403, new { message = "Thiết bị chưa được đăng ký. Vui lòng đăng xuất và đăng nhập lại." });
-
-            // Nếu request thiếu chữ ký
-            if (string.IsNullOrEmpty(request.Signature) || string.IsNullOrEmpty(request.RawPayload))
-                return StatusCode(403, new { message = "Yêu cầu thiếu chữ ký số. Không thể xác thực thiết bị." });
-
-            try
             {
-                // Nạp Public Key từ cột MaThietBi (SPKI Base64)
-                var publicKeyBytes = Convert.FromBase64String(sinhVien.MaThietBi);
-                using var ecdsa = ECDsa.Create();
-                ecdsa.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
-
-                // Xác thực chữ ký
-                var payloadBytes = System.Text.Encoding.UTF8.GetBytes(request.RawPayload);
-                var signatureBytes = Convert.FromBase64String(request.Signature);
-                bool isValid = ecdsa.VerifyData(payloadBytes, signatureBytes, HashAlgorithmName.SHA256);
-
-                if (!isValid)
+                isDeviceFraud = true;
+                deviceErrorMessage = "Thiết bị chưa được đăng ký. Vui lòng đăng xuất và đăng nhập lại.";
+            }
+            else if (string.IsNullOrEmpty(request.Signature) || string.IsNullOrEmpty(request.RawPayload))
+            {
+                isDeviceFraud = true;
+                deviceErrorMessage = "Thiếu chữ ký số. Không thể xác thực thiết bị.";
+            }
+            else
+            {
+                try
                 {
-                    // GHI NHẬN GIAN LẬN: Chữ ký không khớp với Public Key đã đăng ký
-                    await RecordAttendance(request.MaBuoiHoc, request.MaSv, 5, request.Signature, request.Lat, request.Long, "Phát hiện ký bằng máy lạ!");
-                    return StatusCode(403, new { message = "Chữ ký số không hợp lệ. Thiết bị không được phép điểm danh." });
+                    var publicKeyBytes = Convert.FromBase64String(sinhVien.MaThietBi);
+                    using var ecdsa = ECDsa.Create();
+                    ecdsa.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
+
+                    var payloadBytes = System.Text.Encoding.UTF8.GetBytes(request.RawPayload);
+                    var signatureBytes = Convert.FromBase64String(request.Signature);
+                    bool isValid = ecdsa.VerifyData(payloadBytes, signatureBytes, HashAlgorithmName.SHA256);
+
+                    if (!isValid)
+                    {
+                        isDeviceFraud = true;
+                        deviceErrorMessage = "Chữ ký số không khớp.";
+                    }
+                }
+                catch (Exception ex)
+                {
+                    isDeviceFraud = true;
+                    deviceErrorMessage = "Lỗi kỹ thuật: " + ex.Message;
                 }
             }
-            catch (Exception ex)
+
+            // ==== TỔNG HỢP VÀ GHI NHẬN ====
+            if (isGpsFraud || isDeviceFraud)
             {
-                // GHI NHẬN GIAN LẬN: Lỗi kỹ thuật khi xác thực (thường do giả mạo payload)
-                await RecordAttendance(request.MaBuoiHoc, request.MaSv, 5, request.Signature, request.Lat, request.Long, "Lỗi xác thực: " + ex.Message);
-                return StatusCode(403, new { message = "Lỗi xác thực thiết bị: " + ex.Message });
+                var ghiChuParts = new List<string>();
+                if (isGpsFraud && calculatedDistance.HasValue) ghiChuParts.Add($"Gian lận vị trí: Cách phòng học {Math.Round(calculatedDistance.Value)} mét");
+                if (isDeviceFraud) ghiChuParts.Add($"Phát hiện gian lận thiết bị ({deviceErrorMessage})");
+                
+                string ghiChu = string.Join(" | ", ghiChuParts);
+                await RecordAttendance(request.MaBuoiHoc, request.MaSv, 5, request.Signature, request.Lat, request.Long, ghiChu);
+                
+                return StatusCode(403, new { 
+                    message = "Phát hiện gian lận điểm danh!", 
+                    isGpsFraud = isGpsFraud, 
+                    isDeviceFraud = isDeviceFraud, 
+                    distance = calculatedDistance.HasValue ? Math.Round(calculatedDistance.Value) : (double?)null 
+                });
             }
             // ==== KẾT THÚC XÁC THỰC ====
 
             await RecordAttendance(request.MaBuoiHoc, request.MaSv, 1, request.Signature, request.Lat, request.Long);
 
-            return Ok(new { success = true, message = "Điểm danh thành công!" });
+            return Ok(new { success = true, message = "Điểm danh thành công!", distance = calculatedDistance.HasValue ? Math.Round(calculatedDistance.Value) : (double?)null });
         }
 
         // Hàm phụ dùng chung để ghi nhận điểm danh / gian lận
