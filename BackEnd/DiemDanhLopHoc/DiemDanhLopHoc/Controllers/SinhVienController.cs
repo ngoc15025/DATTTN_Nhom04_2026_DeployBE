@@ -38,6 +38,25 @@ namespace DiemDanhLopHoc.Controllers
             return Ok(new { success = true, data = danhSach });
         }
 
+        [HttpGet("{maSv}")]
+        public async Task<IActionResult> GetById(string maSv)
+        {
+            var s = await _context.SinhViens.FindAsync(maSv);
+            if (s == null) return NotFound(new { success = false, message = "Không tìm thấy sinh viên." });
+
+            return Ok(new { success = true, data = new SinhVienDto
+            {
+                MaSv = s.MaSv,
+                TaiKhoan = s.TaiKhoan,
+                HoTen = s.HoLot + " " + s.TenSv, 
+                Lop = s.Lop,
+                Email = s.Email,
+                SoDienThoai = s.SoDienThoai,
+                AnhDaiDien = s.AnhDaiDien,
+                MaThietBi = s.MaThietBi
+            }});
+        }
+
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] TaoSinhVienDto request)
         {
