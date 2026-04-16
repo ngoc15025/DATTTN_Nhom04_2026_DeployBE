@@ -333,6 +333,43 @@ namespace DiemDanhLopHoc.Controllers
                 message = $"Đã thêm thành công {addedToClassCount} sinh viên vào lớp. (Tạo mới: {newStudentCount})" 
             });
         }
+        [HttpDelete("{maLop}/remove-student/{maSv}")]
+        public async Task<IActionResult> RemoveStudent(string maLop, string maSv)
+        {
+            var lopHoc = await _context.LopHocs
+                .Include(l => l.MaSvs)
+                .Include(l => l.BuoiHocs)
+                .FirstOrDefaultAsync(l => l.MaLop == maLop);
+
+            if (lopHoc == null) return NotFound(new { success = false, message = "Không tìm thấy lớp học." });
+
+            var sinhVien = lopHoc.MaSvs.FirstOrDefault(s => s.MaSv == maSv);
+            if (sinhVien == null) return NotFound(new { success = false, message = "Sinh viên không có trong lớp này." });
+
+            try
+            {
+                // Xóa dữ liệu điểm danh của sinh viên này trong các buổi học của lớp
+                var buoiHocIds = lopHoc.BuoiHocs.Select(b => b.MaBuoiHoc).ToList();
+                var diemDanhsToRemove = await _context.DiemDanhs
+                    .Where(d => d.MaSv == maSv && buoiHocIds.Contains(d.MaBuoiHoc))
+                    .ToListAsync();
+                
+                if (diemDanhsToRemove.Any())
+                {
+                    _context.DiemDanhs.RemoveRange(diemDanhsToRemove);
+                }
+
+                // Gỡ sinh viên khỏi lớp
+                lopHoc.MaSvs.Remove(sinhVien);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { success = true, message = $"Đã xóa sinh viên {maSv} khỏi lớp và dọn dẹp dữ liệu điểm danh." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "Lỗi khi xóa sinh viên: " + ex.Message });
+            }
+        }
 
         [HttpDelete("{maLop}")]
         public async Task<IActionResult> Delete(string maLop)

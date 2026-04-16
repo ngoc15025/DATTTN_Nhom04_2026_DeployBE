@@ -163,6 +163,7 @@ namespace DiemDanhLopHoc.Controllers
             sinhVien.Lop = request.Lop;
             sinhVien.Email = request.Email;
             sinhVien.SoDienThoai = request.SoDienThoai;
+            sinhVien.AnhDaiDien = request.AnhDaiDien;
 
             await _context.SaveChangesAsync();
 

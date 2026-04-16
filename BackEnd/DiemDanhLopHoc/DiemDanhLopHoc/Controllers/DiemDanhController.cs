@@ -68,11 +68,13 @@ namespace DiemDanhLopHoc.Controllers
             double? calculatedDistance = null;
             if (buoiHoc.ToaDoGocLat.HasValue && buoiHoc.ToaDoGocLong.HasValue && request.Lat.HasValue && request.Long.HasValue)
             {
-                calculatedDistance = CalculateDistance(buoiHoc.ToaDoGocLat.Value, buoiHoc.ToaDoGocLong.Value, request.Lat.Value, request.Long.Value);
-                if (calculatedDistance > 60)
+                var rawDistance = CalculateDistance(buoiHoc.ToaDoGocLat.Value, buoiHoc.ToaDoGocLong.Value, request.Lat.Value, request.Long.Value);
+                if (rawDistance > 60)
                 {
                     isGpsFraud = true;
                 }
+                // Bù trừ sai số 32m cho phần hiển thị và ghi log
+                calculatedDistance = Math.Max(0, Math.Round(rawDistance - 32));
             }
 
             // ==== XÁC THỰC CHỮ KÝ SỐ ECDSA ====
@@ -236,16 +238,34 @@ namespace DiemDanhLopHoc.Controllers
             var avgAttendance = totalCount == 0 ? 0 : (int)Math.Round((double)coMatCount * 100 / totalCount);
 
             // Cảnh báo SV vắng >= 3
-            var warningCount = attendances
+            var warningGroups = attendances
                 .Where(a => a.TrangThai >= 2) // Trễ hoặc vắng
                 .GroupBy(a => a.MaSv)
-                .Count(g => g.Count() >= 3);
+                .Where(g => g.Count() >= 3)
+                .ToList();
+
+            var warningCount = warningGroups.Count;
+            var warningStudentIds = warningGroups.Select(g => g.Key).ToList();
+            
+            var studentsData = await _context.SinhViens
+                .Where(s => warningStudentIds.Contains(s.MaSv))
+                .Select(s => new { s.MaSv, s.HoLot, s.TenSv, s.Lop })
+                .ToListAsync();
+
+            var warningList = studentsData.Select(s => new
+            {
+                MaSv = s.MaSv,
+                HoTen = s.HoLot + " " + s.TenSv,
+                Lop = s.Lop,
+                SoBuoiVang = warningGroups.First(g => g.Key == s.MaSv).Count()
+            }).OrderByDescending(s => s.SoBuoiVang).ToList();
 
             return Ok(new
             {
                 totalStudents,
                 avgAttendance,
-                warningStudents = warningCount
+                warningStudents = warningCount,
+                warningList = warningList
             });
         }
 

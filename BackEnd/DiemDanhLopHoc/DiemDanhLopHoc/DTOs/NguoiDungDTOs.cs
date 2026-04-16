@@ -82,6 +82,7 @@ namespace DiemDanhLopHoc.DTOs
         public string Lop { get; set; } = null!;
         public string? Email { get; set; }
         public string? SoDienThoai { get; set; }
+        public string? AnhDaiDien { get; set; }
     }
 
     public class CapNhatGiangVienDto
