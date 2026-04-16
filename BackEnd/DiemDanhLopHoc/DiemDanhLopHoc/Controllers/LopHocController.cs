@@ -29,9 +29,16 @@ namespace DiemDanhLopHoc.Controllers
         // Dùng Include để lấy luôn dữ liệu môn học và giảng viên theo yêu cầu tài liệu,
         // sau đó Select sang DTO để tránh trả thẳng entity và tránh vòng lặp JSON.
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] string? maGv)
         {
-            var danhSach = await _context.LopHocs
+            var query = _context.LopHocs.AsQueryable();
+
+            if (!string.IsNullOrEmpty(maGv))
+            {
+                query = query.Where(l => l.MaGv == maGv);
+            }
+
+            var danhSach = await query
                 .Include(l => l.MaMonNavigation)
                 .Include(l => l.MaGvNavigation)
               .Select(l => new LopHocDto
