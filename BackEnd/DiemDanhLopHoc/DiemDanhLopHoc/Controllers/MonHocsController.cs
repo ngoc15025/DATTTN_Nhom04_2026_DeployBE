@@ -1,4 +1,4 @@
-﻿using DiemDanhLopHoc.Data;
+using DiemDanhLopHoc.Data;
 using DiemDanhLopHoc.DTOs;
 using DiemDanhLopHoc.Models; 
 using Microsoft.AspNetCore.Mvc;
@@ -22,10 +22,17 @@ namespace DiemDanhLopHoc.Controllers
 
         // --- 2. API Lấy danh sách Môn học (GET) ---
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] string? maGv)
         {
-            // Dùng .Select() để chỉ lấy đúng Mã và Tên, vứt bỏ các list khóa ngoại đi
-            var danhSach = await _context.MonHocs
+            var query = _context.MonHocs.AsQueryable();
+
+            if (!string.IsNullOrEmpty(maGv))
+            {
+                // Chỉ lấy các môn học mà giảng viên này có ít nhất 1 lớp học
+                query = query.Where(m => _context.LopHocs.Any(l => l.MaMon == m.MaMon && l.MaGv == maGv));
+            }
+
+            var danhSach = await query
                 .Select(m => new MonHocDto { MaMon = m.MaMon, TenMon = m.TenMon })
                 .ToListAsync();
 
