@@ -214,58 +214,84 @@ namespace DiemDanhLopHoc.Controllers
         [HttpGet("lecturer-stats/{maGv}")]
         public async Task<IActionResult> GetLecturerStats(string maGv)
         {
-            // Lấy danh sách lớp của GV
-            var lopIds = await _context.LopHocs
+            // 1. Lấy danh sách lớp của GV kèm theo SV và Buổi học đã chốt
+            var lopHocs = await _context.LopHocs
+                .Include(l => l.MaSvs)
+                .Include(l => l.BuoiHocs)
+                .Include(l => l.MaMonNavigation)
                 .Where(l => l.MaGv == maGv)
-                .Select(l => l.MaLop)
                 .ToListAsync();
 
-            // Đếm SV unique
-            var totalStudents = await _context.LopHocs
-                .Where(l => l.MaGv == maGv)
-                .SelectMany(l => l.MaSvs)
-                .Select(s => s.MaSv)
-                .Distinct()
-                .CountAsync();
+            var lopIds = lopHocs.Select(l => l.MaLop).ToList();
 
-            // Tính tỷ lệ chuyên cần trung bình
-            var attendances = await _context.DiemDanhs
+            // 2. Lấy toàn bộ bản ghi điểm danh của các lớp này
+            var allAttendances = await _context.DiemDanhs
                 .Where(d => lopIds.Contains(d.MaBuoiHocNavigation.MaLop))
                 .ToListAsync();
 
-            var coMatCount = attendances.Count(a => a.TrangThai == 1);
-            var totalCount = attendances.Count;
-            var avgAttendance = totalCount == 0 ? 0 : (int)Math.Round((double)coMatCount * 100 / totalCount);
-
-            // Cảnh báo SV vắng >= 3
-            var warningGroups = attendances
-                .Where(a => a.TrangThai >= 2) // Trễ hoặc vắng
-                .GroupBy(a => a.MaSv)
-                .Where(g => g.Count() >= 3)
-                .ToList();
-
-            var warningCount = warningGroups.Count;
-            var warningStudentIds = warningGroups.Select(g => g.Key).ToList();
+            // 3. Tính toán Thống kê Tổng quan
+            int totalStudentsUnique = lopHocs.SelectMany(l => l.MaSvs).Select(s => s.MaSv).Distinct().Count();
             
-            var studentsData = await _context.SinhViens
-                .Where(s => warningStudentIds.Contains(s.MaSv))
-                .Select(s => new { s.MaSv, s.HoLot, s.TenSv, s.Lop })
-                .ToListAsync();
+            // Tỷ lệ chuyên cần = (Có mặt + Trễ) / Tổng số bản ghi (không tính Gian lận/Vắng)
+            var coMatRecords = allAttendances.Count(a => a.TrangThai == 1 || a.TrangThai == 2);
+            var totalRecords = allAttendances.Count;
+            int avgAttendance = totalRecords == 0 ? 0 : (int)Math.Round((double)coMatRecords * 100 / totalRecords);
 
-            var warningList = studentsData.Select(s => new
+            // 4. Tìm kiếm Sinh viên vi phạm ngưỡng 30% (Per Class)
+            var warningList = new List<object>();
+
+            foreach (var lop in lopHocs)
             {
-                MaSv = s.MaSv,
-                HoTen = s.HoLot + " " + s.TenSv,
-                Lop = s.Lop,
-                SoBuoiVang = warningGroups.First(g => g.Key == s.MaSv).Count()
-            }).OrderByDescending(s => s.SoBuoiVang).ToList();
+                // Các buổi học đã kết thúc (chốt sổ)
+                var buoiDaChot = lop.BuoiHocs.Where(b => b.TrangThaiBh == 2).ToList();
+                var buoiDaChotIds = buoiDaChot.Select(b => b.MaBuoiHoc).ToList();
+
+                foreach (var sv in lop.MaSvs)
+                {
+                    // Lấy điểm danh của SV này trong các buổi đã chốt của lớp này
+                    var svAttendances = allAttendances
+                        .Where(a => a.MaSv == sv.MaSv && buoiDaChotIds.Contains(a.MaBuoiHoc))
+                        .ToList();
+
+                    // Đếm vắng thực tế (3: Vắng có phép, 4: Vắng không phép, 5: Gian lận)
+                    int vangThucTe = svAttendances.Count(a => a.TrangThai >= 3);
+
+                    // Đếm vắng do "Chưa điểm danh" (Buổi đã chốt nhưng không có record)
+                    int chuaDiemDanhCount = buoiDaChot.Count(b => !svAttendances.Any(a => a.MaBuoiHoc == b.MaBuoiHoc));
+
+                    int tongVang = vangThucTe + chuaDiemDanhCount;
+                    double tiLe = (double)tongVang / lop.SoBuoiHoc;
+
+                    // Ngưỡng 30%: Nếu vắng quá 30% tổng số buổi môn học
+                    if (tiLe > 0.3)
+                    {
+                        warningList.Add(new
+                        {
+                            MaSv = sv.MaSv,
+                            HoTen = sv.HoLot + " " + sv.TenSv,
+                            Lop = sv.Lop, // Lớp sinh hoạt
+                            TenLop = lop.TenLop, // Tên lớp học phần/Môn học
+                            TenMon = lop.MaMonNavigation?.TenMon,
+                            SoBuoiVang = tongVang,
+                            TongBuoi = lop.SoBuoiHoc,
+                            TiLeVang = Math.Round(tiLe * 100, 1)
+                        });
+                    }
+                }
+            }
+
+            // Sắp xếp theo tỷ lệ vắng giảm dần
+            var sortedWarningList = warningList
+                .Cast<dynamic>()
+                .OrderByDescending(x => x.TiLeVang)
+                .ToList();
 
             return Ok(new
             {
-                totalStudents,
+                totalStudents = totalStudentsUnique,
                 avgAttendance,
-                warningStudents = warningCount,
-                warningList = warningList
+                warningStudents = sortedWarningList.Count,
+                warningList = sortedWarningList
             });
         }
 

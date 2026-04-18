@@ -30,6 +30,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<SinhVien> SinhViens { get; set; }
 
+    public virtual DbSet<PhanHoi> PhanHois { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         // Connection string should be configured in Program.cs
@@ -224,7 +226,7 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(20)
                 .IsUnicode(false)
                 .HasColumnName("MaSV");
-            entity.Property(e => e.AnhDaiDien).HasMaxLength(500);
+            entity.Property(e => e.AnhDaiDien); // Không giới hạn độ dài (NVARCHAR(MAX)) để lưu Base64
             entity.Property(e => e.Email)
                 .HasMaxLength(100)
                 .IsUnicode(false);
@@ -247,6 +249,23 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.TenSv)
                 .HasMaxLength(50)
                 .HasColumnName("TenSV");
+        });
+
+        modelBuilder.Entity<PhanHoi>(entity =>
+        {
+            entity.HasKey(e => e.MaPhanHoi);
+            entity.ToTable("PhanHoi");
+
+            entity.Property(e => e.NoiDung).HasMaxLength(1000);
+            entity.Property(e => e.PhanHoiGv).HasMaxLength(1000);
+            entity.Property(e => e.ThoiGianGui).HasColumnType("datetime");
+            entity.Property(e => e.TrangThai).HasDefaultValue(0);
+
+            entity.HasOne(d => d.MaDiemDanhNavigation)
+                .WithMany(p => p.PhanHois)
+                .HasForeignKey(d => d.MaDiemDanh)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_PhanHoi_DiemDanh");
         });
 
         OnModelCreatingPartial(modelBuilder);
