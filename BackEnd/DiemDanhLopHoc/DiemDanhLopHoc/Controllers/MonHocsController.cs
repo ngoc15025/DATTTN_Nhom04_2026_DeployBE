@@ -24,15 +24,10 @@ namespace DiemDanhLopHoc.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll([FromQuery] string? maGv)
         {
-            var query = _context.MonHocs.AsQueryable();
-
-            if (!string.IsNullOrEmpty(maGv))
-            {
-                // Chỉ lấy các môn học mà giảng viên này có ít nhất 1 lớp học
-                query = query.Where(m => _context.LopHocs.Any(l => l.MaMon == m.MaMon && l.MaGv == maGv));
-            }
-
-            var danhSach = await query
+            // Môn học là danh mục dùng chung → luôn trả về toàn bộ để Giảng viên thêm/sửa.
+            // Việc lọc theo giảng viên đã được thực hiện ở API danh sách Lớp học riêng.
+            var danhSach = await _context.MonHocs
+                .OrderBy(m => m.MaMon)
                 .Select(m => new MonHocDto { MaMon = m.MaMon, TenMon = m.TenMon })
                 .ToListAsync();
 
