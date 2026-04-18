@@ -62,7 +62,12 @@ namespace DiemDanhLopHoc.Controllers
             {
                 var hoTenDayDu = $"{sinhVien.HoLot} {sinhVien.TenSv}";
                 var token = GenerateJwtToken(sinhVien.TaiKhoan, "Student", hoTenDayDu, sinhVien.MaSv);
-                return Ok(new { success = true, data = new { token, role = "Student", name = hoTenDayDu } });
+                return Ok(new { success = true, data = new {
+                    token,
+                    role = "Student",
+                    name = hoTenDayDu,
+                    anhDaiDien = sinhVien.AnhDaiDien  // Trả URL ảnh Cloudinary về ngay khi đăng nhập
+                }});
             }
 
             // 4. Tìm cả 3 bảng không ra ai
