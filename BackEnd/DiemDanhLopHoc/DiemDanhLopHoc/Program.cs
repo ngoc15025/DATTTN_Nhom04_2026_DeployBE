@@ -22,6 +22,9 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Đăng ký Service Upload Ảnh (Cloudinary)
+builder.Services.AddScoped<DiemDanhLopHoc.Services.IUploadService, DiemDanhLopHoc.Services.CloudinaryService>();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>

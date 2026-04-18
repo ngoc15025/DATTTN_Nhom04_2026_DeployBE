@@ -11,10 +11,12 @@ namespace DiemDanhLopHoc.Controllers
     public class SinhVienController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly DiemDanhLopHoc.Services.IUploadService _uploadService;
 
-        public SinhVienController(AppDbContext context)
+        public SinhVienController(AppDbContext context, DiemDanhLopHoc.Services.IUploadService uploadService)
         {
             _context = context;
+            _uploadService = uploadService;
         }
 
         
@@ -210,6 +212,37 @@ namespace DiemDanhLopHoc.Controllers
             }).ToList();
 
             return Ok(new { success = true, data });
+        }
+
+        [HttpPost("{maSv}/upload-avatar")]
+        public async Task<IActionResult> UploadAvatar(string maSv, IFormFile file)
+        {
+            var sinhVien = await _context.SinhViens.FindAsync(maSv);
+            if (sinhVien == null)
+                return NotFound(new { success = false, message = "Không tìm thấy sinh viên." });
+
+            try
+            {
+                var imageUrl = await _uploadService.UploadAvatarAsync(file, maSv);
+
+                if (string.IsNullOrEmpty(imageUrl))
+                    return BadRequest(new { success = false, message = "Vui lòng chọn một file ảnh." });
+
+                // Cập nhật URL ảnh mới từ Cloudinary vào DB
+                sinhVien.AnhDaiDien = imageUrl;
+                await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Cập nhật ảnh đại diện thành công!",
+                    anhDaiDienUrl = imageUrl
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
         }
     }
 }
