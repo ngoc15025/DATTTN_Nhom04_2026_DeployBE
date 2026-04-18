@@ -61,11 +61,17 @@ namespace DiemDanhLopHoc.Services
 
             var uploadResult = await _cloudinary.UploadAsync(uploadParams);
 
+            // Kiểm tra lỗi từ Cloudinary (fail rõ ràng)
             if (uploadResult.Error != null)
                 throw new Exception($"Lỗi Cloudinary: {uploadResult.Error.Message}");
 
+            // Kiểm tra URL trả về có hợp lệ không (đề phòng upload thầm lặng thất bại)
+            var secureUrl = uploadResult.SecureUrl?.ToString();
+            if (string.IsNullOrEmpty(secureUrl))
+                throw new Exception("Upload thất bại: Cloudinary không trả về URL hợp lệ.");
+
             // Trả về link HTTPS an toàn
-            return uploadResult.SecureUrl.ToString();
+            return secureUrl;
         }
     }
 }
