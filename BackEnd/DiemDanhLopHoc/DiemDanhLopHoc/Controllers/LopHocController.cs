@@ -208,7 +208,8 @@ namespace DiemDanhLopHoc.Controllers
                     HoTen = s.HoLot + " " + s.TenSv,
                     Email = s.Email,
                     SoDienThoai = s.SoDienThoai,
-                    AnhDaiDien = s.AnhDaiDien
+                    AnhDaiDien = s.AnhDaiDien,
+                    MaThietBi = s.MaThietBi
                 })
                 .ToListAsync();
 

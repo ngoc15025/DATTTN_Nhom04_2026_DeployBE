@@ -130,6 +130,7 @@ namespace DiemDanhLopHoc.Controllers
 
         // Reset thiết bị: Chỉ định cho Giảng viên / Admin dùng để mở khóa cấp lại thiết bị
         [HttpPost("reset-device/{maSv}")]
+        [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin,Lecturer")]
         public async Task<IActionResult> ResetDevice(string maSv)
         {
             var sinhVien = await _context.SinhViens.FindAsync(maSv);

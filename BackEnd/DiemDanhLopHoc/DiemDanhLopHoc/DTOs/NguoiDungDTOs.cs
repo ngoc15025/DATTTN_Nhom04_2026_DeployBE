@@ -46,6 +46,7 @@ namespace DiemDanhLopHoc.DTOs
         public string? Email { get; set; }
         public string? SoDienThoai { get; set; }
         public string? AnhDaiDien { get; set; }
+        public string? MaThietBi { get; set; }
     }
 
     // DTO dùng để trả dữ liệu (Đã bổ sung Lop và MaThietBi, bỏ NgaySinh)
