@@ -27,6 +27,7 @@ namespace DiemDanhLopHoc.Controllers
                 var totalStudents = await _context.SinhViens.CountAsync();
                 var totalLecturers = await _context.GiangViens.CountAsync();
                 var totalClasses = await _context.LopHocs.CountAsync();
+                var totalSubjects = await _context.MonHocs.CountAsync();
 
                 // 2. Điểm danh trong ngày hôm nay
                 var todayAttendanceCount = await _context.DiemDanhs
@@ -58,6 +59,7 @@ namespace DiemDanhLopHoc.Controllers
                     TotalStudents = totalStudents,
                     TotalLecturers = totalLecturers,
                     TotalClasses = totalClasses,
+                    TotalSubjects = totalSubjects,
                     TodayAttendance = todayAttendanceCount,
                     RecentActivities = recentActivities
                 };
