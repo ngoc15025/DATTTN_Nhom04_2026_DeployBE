@@ -8,6 +8,7 @@ namespace DiemDanhLopHoc.DTOs
         public int TotalStudents { get; set; }
         public int TotalLecturers { get; set; }
         public int TotalClasses { get; set; }
+        public int TotalSubjects { get; set; }
         public int TodayAttendance { get; set; }
         public List<RecentActivityDto> RecentActivities { get; set; } = new();
     }
