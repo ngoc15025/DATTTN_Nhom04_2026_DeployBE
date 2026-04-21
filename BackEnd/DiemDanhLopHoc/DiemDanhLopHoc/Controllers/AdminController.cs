@@ -1,3 +1,5 @@
+using DiemDanhLopHoc.DTOs;
+using DiemDanhLopHoc.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using DiemDanhLopHoc.Utils;
