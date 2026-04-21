@@ -4,6 +4,7 @@ using DiemDanhLopHoc.Data;
 using DiemDanhLopHoc.Models;
 using DiemDanhLopHoc.DTOs;
 using System.Security.Cryptography;
+using DiemDanhLopHoc.Utils;
 
 namespace DiemDanhLopHoc.Controllers
 {
@@ -180,7 +181,7 @@ namespace DiemDanhLopHoc.Controllers
                 MaBuoiHoc = maBuoiHoc,
                 MaSv = maSv,
                 TrangThai = trangThai,
-                ThoiGianQuet = DateTime.Now,
+                ThoiGianQuet = TimeUtils.GetVietnamTime(),
                 ToaDoSvLat = lat,
                 ToaDoSvLong = lng,
                 MaThietBiLog = signature?[..Math.Min(255, signature.Length)],
@@ -232,7 +233,7 @@ namespace DiemDanhLopHoc.Controllers
                         MaSv = req.MaSv,
                         TrangThai = req.TrangThai,
                         GhiChu = req.GhiChu,
-                        ThoiGianQuet = DateTime.Now
+                        ThoiGianQuet = TimeUtils.GetVietnamTime()
                     });
                 }
             }

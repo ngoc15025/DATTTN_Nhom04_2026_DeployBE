@@ -1,7 +1,6 @@
-using DiemDanhLopHoc.Data;
-using DiemDanhLopHoc.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using DiemDanhLopHoc.Utils;
 
 namespace DiemDanhLopHoc.Controllers
 {
@@ -21,7 +20,7 @@ namespace DiemDanhLopHoc.Controllers
         {
             try
             {
-                var today = DateTime.Today;
+                var today = TimeUtils.GetVietnamTime().Date;
 
                 // 1. Đồ lường các chỉ số cơ bản
                 var totalStudents = await _context.SinhViens.CountAsync();

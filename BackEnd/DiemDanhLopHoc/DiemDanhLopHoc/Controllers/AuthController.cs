@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using DiemDanhLopHoc.Utils;
 
 //============API Đăng nhập================
 namespace DiemDanhLopHoc.Controllers
@@ -169,7 +170,7 @@ namespace DiemDanhLopHoc.Controllers
                 issuer: jwtSettings["Issuer"],
                 audience: jwtSettings["Audience"],
                 claims: claims,
-                expires: DateTime.Now.AddHours(2), // Token sống được 2 tiếng
+                expires: TimeUtils.GetVietnamTime().AddHours(2), // Token sống được 2 tiếng theo giờ VN
                 signingCredentials: creds
             );
 

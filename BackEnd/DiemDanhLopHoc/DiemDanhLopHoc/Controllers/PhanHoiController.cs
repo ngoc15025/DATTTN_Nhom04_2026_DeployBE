@@ -1,6 +1,7 @@
 using DiemDanhLopHoc.Data;
 using DiemDanhLopHoc.DTOs;
 using DiemDanhLopHoc.Models;
+using DiemDanhLopHoc.Utils;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -39,7 +40,7 @@ namespace DiemDanhLopHoc.Controllers
                 MaDiemDanh = request.MaDiemDanh,
                 NoiDung = request.NoiDung,
                 MinhChung = request.MinhChung,
-                ThoiGianGui = DateTime.Now,
+                ThoiGianGui = TimeUtils.GetVietnamTime(),
                 TrangThai = 0
             };
 

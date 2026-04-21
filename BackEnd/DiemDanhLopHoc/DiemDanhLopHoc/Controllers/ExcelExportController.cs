@@ -55,8 +55,13 @@ namespace DiemDanhLopHoc.Controllers
 
             if (buoiHoc == null) return NotFound("Không tìm thấy buổi học.");
 
+            var allStudentsInClass = await _context.LopHocs
+                .Where(l => l.MaLop == buoiHoc.MaLop)
+                .SelectMany(l => l.MaSvs)
+                .OrderBy(s => s.MaSv)
+                .ToListAsync();
+
             var diemDanhs = await _context.DiemDanhs
-                .Include(d => d.MaSvNavigation)
                 .Where(d => d.MaBuoiHoc == maBuoiHoc)
                 .ToListAsync();
 
@@ -88,23 +93,35 @@ namespace DiemDanhLopHoc.Controllers
                     cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
                 }
 
-                // Dữ liệu
+                // Dữ liệu (Duyệt qua tất cả sinh viên trong lớp)
                 int row = 6;
                 int stt = 1;
-                foreach (var dd in diemDanhs)
+                foreach (var sv in allStudentsInClass)
                 {
+                    var dd = diemDanhs.FirstOrDefault(d => d.MaSv == sv.MaSv);
+
                     worksheet.Cell(row, 1).Value = stt++;
-                    worksheet.Cell(row, 2).Value = dd.MaSv;
-                    worksheet.Cell(row, 3).Value = dd.MaSvNavigation.HoLot + " " + dd.MaSvNavigation.TenSv;
-                    worksheet.Cell(row, 4).Value = dd.MaSvNavigation.Lop;
+                    worksheet.Cell(row, 2).Value = sv.MaSv;
+                    worksheet.Cell(row, 3).Value = sv.HoLot + " " + sv.TenSv;
+                    worksheet.Cell(row, 4).Value = sv.Lop;
                     
                     var statusCell = worksheet.Cell(row, 5);
-                    statusCell.Value = GetStatusText(dd.TrangThai);
-                    statusCell.Style.Font.FontColor = GetStatusColor(dd.TrangThai);
-                    statusCell.Style.Font.Bold = true;
-
-                    worksheet.Cell(row, 6).Value = dd.ThoiGianQuet?.ToString("HH:mm:ss") ?? "-";
-                    worksheet.Cell(row, 7).Value = dd.GhiChu;
+                    if (dd != null)
+                    {
+                        statusCell.Value = GetStatusText(dd.TrangThai);
+                        statusCell.Style.Font.FontColor = GetStatusColor(dd.TrangThai);
+                        statusCell.Style.Font.Bold = true;
+                        worksheet.Cell(row, 6).Value = dd.ThoiGianQuet?.ToString("HH:mm:ss") ?? "-";
+                        worksheet.Cell(row, 7).Value = dd.GhiChu;
+                    }
+                    else
+                    {
+                        statusCell.Value = "Vắng không phép";
+                        statusCell.Style.Font.FontColor = XLColor.Red;
+                        statusCell.Style.Font.Bold = true;
+                        worksheet.Cell(row, 6).Value = "-";
+                        worksheet.Cell(row, 7).Value = "";
+                    }
                     row++;
                 }
 
@@ -200,32 +217,38 @@ namespace DiemDanhLopHoc.Controllers
                         var attendance = allAttendances.FirstOrDefault(a => a.MaSv == sv.MaSv && a.MaBuoiHoc == bh.MaBuoiHoc);
                         var cell = worksheet.Cell(row, subCol);
 
-                        if (attendance == null) // Chưa điểm danh hoặc vắng
+                        if (attendance == null) // Không có dữ liệu điểm danh -> Vắng
                         {
-                            if (bh.TrangThaiBh == 2) // Nếu buổi đã chốt mà ko có record -> Vắng
-                            {
-                                cell.Value = "V";
-                                cell.Style.Font.FontColor = XLColor.Red;
-                                vangCount++;
-                            }
-                            else
-                            {
-                                cell.Value = "-";
-                            }
+                            cell.Value = "V";
+                            cell.Style.Font.FontColor = XLColor.Red;
+                            vangCount++;
                         }
                         else
                         {
-                            // 1,2: Có mặt/Trễ | 3,4,5: Vắng/Gian lận
-                            if (attendance.TrangThai <= 2)
+                            // Quy ước ký hiệu:
+                            // 1: x (Có mặt) | 2: T (Trễ) | 3: P (Phép) | 4,5: V (Vắng/Gian lận)
+                            switch (attendance.TrangThai)
                             {
-                                cell.Value = attendance.TrangThai == 1 ? "x" : "T";
-                                cell.Style.Font.FontColor = attendance.TrangThai == 1 ? XLColor.SeaGreen : XLColor.Orange;
-                            }
-                            else
-                            {
-                                cell.Value = "V";
-                                cell.Style.Font.FontColor = XLColor.Red;
-                                vangCount++;
+                                case 1:
+                                    cell.Value = "x";
+                                    cell.Style.Font.FontColor = XLColor.SeaGreen;
+                                    break;
+                                case 2:
+                                    cell.Value = "T";
+                                    cell.Style.Font.FontColor = XLColor.Orange;
+                                    break;
+                                case 3:
+                                    cell.Value = "P";
+                                    cell.Style.Font.FontColor = XLColor.LightBlue;
+                                    vangCount++; // Vẫn tính là 1 buổi vắng trong tổng số buổi
+                                    break;
+                                case 4:
+                                case 5:
+                                default:
+                                    cell.Value = "V";
+                                    cell.Style.Font.FontColor = XLColor.Red;
+                                    vangCount++;
+                                    break;
                             }
                         }
                         cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
