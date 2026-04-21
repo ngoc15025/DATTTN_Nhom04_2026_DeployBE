@@ -94,26 +94,57 @@ namespace DiemDanhLopHoc.Controllers
             }
             else
             {
-                try
-                {
-                    var publicKeyBytes = Convert.FromBase64String(sinhVien.MaThietBi);
-                    using var ecdsa = ECDsa.Create();
-                    ecdsa.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
-
-                    var payloadBytes = System.Text.Encoding.UTF8.GetBytes(request.RawPayload);
-                    var signatureBytes = Convert.FromBase64String(request.Signature);
-                    bool isValid = ecdsa.VerifyData(payloadBytes, signatureBytes, HashAlgorithmName.SHA256);
-
-                    if (!isValid)
-                    {
-                        isDeviceFraud = true;
-                        deviceErrorMessage = "Chữ ký số không khớp.";
-                    }
-                }
-                catch (Exception ex)
+                var dbData = sinhVien.MaThietBi.Split('|');
+                if (dbData.Length != 2)
                 {
                     isDeviceFraud = true;
-                    deviceErrorMessage = "Lỗi kỹ thuật: " + ex.Message;
+                    deviceErrorMessage = "Dữ liệu thiết bị bị hỏng hoặc theo chuẩn cũ. Vui lòng nhờ Giảng viên reset thiết bị.";
+                }
+                else
+                {
+                    string publicKeyDb = dbData[0];
+                    string fingerprintDb = dbData[1];
+
+                    try
+                    {
+                        var payloadObj = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(request.RawPayload);
+                        if (!payloadObj.TryGetProperty("Fingerprint", out var fingerprintElement))
+                        {
+                            isDeviceFraud = true;
+                            deviceErrorMessage = "Thiếu vân tay thiết bị trong yêu cầu điểm danh.";
+                        }
+                        else
+                        {
+                            string fingerprintHienTai = fingerprintElement.GetString();
+                            if (fingerprintDb != fingerprintHienTai)
+                            {
+                                isDeviceFraud = true;
+                                deviceErrorMessage = "Phát hiện nhân bản dữ liệu (LevelDB Hijacking). Môi trường phần cứng không khớp!";
+                            }
+                            else
+                            {
+                                // CHỐT CHẶN CHỮ KÝ SỐ
+                                var publicKeyBytes = Convert.FromBase64String(publicKeyDb);
+                                using var ecdsa = ECDsa.Create();
+                                ecdsa.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
+
+                                var payloadBytes = System.Text.Encoding.UTF8.GetBytes(request.RawPayload);
+                                var signatureBytes = Convert.FromBase64String(request.Signature);
+                                bool isValid = ecdsa.VerifyData(payloadBytes, signatureBytes, HashAlgorithmName.SHA256);
+
+                                if (!isValid)
+                                {
+                                    isDeviceFraud = true;
+                                    deviceErrorMessage = "Chữ ký số không khớp.";
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        isDeviceFraud = true;
+                        deviceErrorMessage = "Lỗi xác thực hệ thống: " + ex.Message;
+                    }
                 }
             }
 

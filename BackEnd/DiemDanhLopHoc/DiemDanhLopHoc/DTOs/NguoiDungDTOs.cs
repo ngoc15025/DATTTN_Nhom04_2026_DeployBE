@@ -103,10 +103,11 @@ namespace DiemDanhLopHoc.DTOs
         public string NewPassword { get; set; } = null!;
     }
 
-    // DTO cho đăng ký thiết bị (Web Crypto - ECDSA Public Key)
+    // DTO cho đăng ký thiết bị (Web Crypto - ECDSA Public Key + FingerprintJS)
     public class RegisterDeviceDto
     {
         public string MaSv { get; set; } = null!;
         public string PublicKeyBase64 { get; set; } = null!; // SPKI format, tương thích với .NET ECDsa.ImportSubjectPublicKeyInfo
+        public string Fingerprint { get; set; } = null!; // Mã vân tay phần cứng do FingerprintJS sinh ra
     }
 }

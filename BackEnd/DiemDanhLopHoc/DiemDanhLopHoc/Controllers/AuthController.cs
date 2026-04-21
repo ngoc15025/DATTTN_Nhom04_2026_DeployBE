@@ -94,15 +94,17 @@ namespace DiemDanhLopHoc.Controllers
         [HttpPost("register-device")]
         public async Task<IActionResult> RegisterDevice([FromBody] RegisterDeviceDto request)
         {
-            if (string.IsNullOrWhiteSpace(request.MaSv) || string.IsNullOrWhiteSpace(request.PublicKeyBase64))
-                return BadRequest(new { success = false, message = "MaSv và PublicKeyBase64 không được để trống." });
+            if (string.IsNullOrWhiteSpace(request.MaSv) || string.IsNullOrWhiteSpace(request.PublicKeyBase64) || string.IsNullOrWhiteSpace(request.Fingerprint))
+                return BadRequest(new { success = false, message = "MaSv, PublicKeyBase64 và Fingerprint không được để trống." });
 
             var sinhVien = await _context.SinhViens.FindAsync(request.MaSv);
             if (sinhVien == null)
                 return NotFound(new { success = false, message = "Không tìm thấy sinh viên." });
 
+            string maThietBiTongHop = $"{request.PublicKeyBase64}|{request.Fingerprint}";
+
             // RÀO CHẮN BẢO MẬT 1: Không cho phép dùng chung thiết bị
-            var deviceAlreadyInUse = await _context.SinhViens.AnyAsync(s => s.MaThietBi == request.PublicKeyBase64 && s.MaSv != request.MaSv);
+            var deviceAlreadyInUse = await _context.SinhViens.AnyAsync(s => s.MaThietBi != null && s.MaThietBi.Contains(request.PublicKeyBase64) && s.MaSv != request.MaSv);
             if (deviceAlreadyInUse)
             {
                 return BadRequest(new { success = false, message = "Lỗi bảo mật: Thiết bị này đang được sử dụng bởi một tài khoản sinh viên khác. Bạn không thể dùng chung thiết bị!" });
@@ -111,7 +113,7 @@ namespace DiemDanhLopHoc.Controllers
             // RÀO CHẮN BẢO MẬT 2: Không cho phép ghi đè nếu đã có thiết bị khác
             if (!string.IsNullOrEmpty(sinhVien.MaThietBi))
             {
-                if (sinhVien.MaThietBi == request.PublicKeyBase64)
+                if (sinhVien.MaThietBi == maThietBiTongHop)
                     return Ok(new { success = true, message = "Thiết bị đã được đồng bộ từ trước." });
                 else
                     return BadRequest(new { success = false, message = "Tài khoản của bạn đã được liên kết với một thiết bị khác. Vui lòng liên hệ Giảng viên/Giáo vụ để yêu cầu Reset thiết bị." });
@@ -121,8 +123,8 @@ namespace DiemDanhLopHoc.Controllers
             try { Convert.FromBase64String(request.PublicKeyBase64); }
             catch { return BadRequest(new { success = false, message = "PublicKey không đúng định dạng Base64." }); }
 
-            // Lưu Public Key vào cột MaThietBi
-            sinhVien.MaThietBi = request.PublicKeyBase64;
+            // Lưu Khóa Kép (PublicKey + Fingerprint) vào cột MaThietBi
+            sinhVien.MaThietBi = maThietBiTongHop;
             await _context.SaveChangesAsync();
 
             return Ok(new { success = true, message = "Đăng ký thiết bị thành công!" });
