@@ -44,10 +44,12 @@ namespace DiemDanhLopHoc.Controllers
                 Id = userHandle
             };
 
-            // Bắt buộc sinh viên phải dùng thiết bị có Khóa màn hình (FaceID/Vân tay/PIN)
+            // Ép buộc sinh viên phải dùng thiết bị có Khóa màn hình (FaceID/Vân tay/PIN)
+            // của chính điện thoại đang cầm (Platform Authenticator)
             var authenticatorSelection = new AuthenticatorSelection
             {
-                RequireResidentKey = true,
+                AuthenticatorAttachment = AuthenticatorAttachment.Platform,
+                ResidentKey = ResidentKeyRequirement.Discouraged,
                 UserVerification = UserVerificationRequirement.Required
             };
 
