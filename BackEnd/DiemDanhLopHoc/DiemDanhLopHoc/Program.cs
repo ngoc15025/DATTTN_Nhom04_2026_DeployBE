@@ -29,9 +29,13 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddMemoryCache(); // Dùng để lưu tạm Challenge (Yêu cầu WebAuthn)
 builder.Services.AddSingleton<IFido2>(new Fido2(new Fido2Configuration
 {
-    ServerDomain = "localhost",
+    ServerDomain = "quanlydiemdanh.vercel.app",
     ServerName = "STUNexus",
-    Origins = new HashSet<string> { "http://localhost:5173", "https://localhost:5173" },
+    Origins = new HashSet<string> { 
+        "http://localhost:5173", 
+        "https://localhost:5173", 
+        "https://quanlydiemdanh.vercel.app" 
+    },
     TimestampDriftTolerance = 300000
 }));
 
