@@ -67,7 +67,8 @@ namespace DiemDanhLopHoc.Controllers
                     token,
                     role = "Student",
                     name = hoTenDayDu,
-                    anhDaiDien = sinhVien.AnhDaiDien  // Trả URL ảnh Cloudinary về ngay khi đăng nhập
+                    anhDaiDien = sinhVien.AnhDaiDien,  // Trả URL ảnh Cloudinary về ngay khi đăng nhập
+                    hasPasskey = sinhVien.PasskeyCredentialId != null
                 }});
             }
 
@@ -91,47 +92,9 @@ namespace DiemDanhLopHoc.Controllers
             return BadRequest(new { success = false, message = "Mật khẩu cũ không chính xác!" });
         }
 
-        // Đăng ký thiết bị: Lưu Public Key (ECDSA SPKI Base64) vào cột MaThietBi
-        [HttpPost("register-device")]
-        public async Task<IActionResult> RegisterDevice([FromBody] RegisterDeviceDto request)
-        {
-            if (string.IsNullOrWhiteSpace(request.MaSv) || string.IsNullOrWhiteSpace(request.PublicKeyBase64) || string.IsNullOrWhiteSpace(request.Fingerprint))
-                return BadRequest(new { success = false, message = "MaSv, PublicKeyBase64 và Fingerprint không được để trống." });
+        // Đăng ký thiết bị cũ đã được thay thế bằng WebAuthnController -> RegisterVerify
 
-            var sinhVien = await _context.SinhViens.FindAsync(request.MaSv);
-            if (sinhVien == null)
-                return NotFound(new { success = false, message = "Không tìm thấy sinh viên." });
-
-            string maThietBiTongHop = $"{request.PublicKeyBase64}|{request.Fingerprint}";
-
-            // RÀO CHẮN BẢO MẬT 1: Không cho phép dùng chung thiết bị
-            var deviceAlreadyInUse = await _context.SinhViens.AnyAsync(s => s.MaThietBi != null && s.MaThietBi.Contains(request.PublicKeyBase64) && s.MaSv != request.MaSv);
-            if (deviceAlreadyInUse)
-            {
-                return BadRequest(new { success = false, message = "Lỗi bảo mật: Thiết bị này đang được sử dụng bởi một tài khoản sinh viên khác. Bạn không thể dùng chung thiết bị!" });
-            }
-
-            // RÀO CHẮN BẢO MẬT 2: Không cho phép ghi đè nếu đã có thiết bị khác
-            if (!string.IsNullOrEmpty(sinhVien.MaThietBi))
-            {
-                if (sinhVien.MaThietBi == maThietBiTongHop)
-                    return Ok(new { success = true, message = "Thiết bị đã được đồng bộ từ trước." });
-                else
-                    return BadRequest(new { success = false, message = "Tài khoản của bạn đã được liên kết với một thiết bị khác. Vui lòng liên hệ Giảng viên/Giáo vụ để yêu cầu Reset thiết bị." });
-            }
-
-            // Validate định dạng Base64 hợp lệ
-            try { Convert.FromBase64String(request.PublicKeyBase64); }
-            catch { return BadRequest(new { success = false, message = "PublicKey không đúng định dạng Base64." }); }
-
-            // Lưu Khóa Kép (PublicKey + Fingerprint) vào cột MaThietBi
-            sinhVien.MaThietBi = maThietBiTongHop;
-            await _context.SaveChangesAsync();
-
-            return Ok(new { success = true, message = "Đăng ký thiết bị thành công!" });
-        }
-
-        // Reset thiết bị: Chỉ định cho Giảng viên / Admin dùng để mở khóa cấp lại thiết bị
+        // Reset thiết bị: Chỉ định cho Giảng viên / Admin dùng để mở khóa cấp lại thiết bị Passkey
         [HttpPost("reset-device/{maSv}")]
         [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin,Lecturer")]
         public async Task<IActionResult> ResetDevice(string maSv)
@@ -140,11 +103,14 @@ namespace DiemDanhLopHoc.Controllers
             if (sinhVien == null)
                 return NotFound(new { success = false, message = "Không tìm thấy sinh viên." });
             
-            // Xóa Public Key cũ, đưa về NULL
-            sinhVien.MaThietBi = null;
+            // Xóa Passkey cũ, đưa về NULL
+            sinhVien.PasskeyCredentialId = null;
+            sinhVien.PasskeyPublicKey = null;
+            sinhVien.PasskeySignCount = null;
+            sinhVien.PasskeyUserHandle = null;
             await _context.SaveChangesAsync();
             
-            return Ok(new { success = true, message = $"Đã reset thiết bị cho SV {maSv}. Sinh viên có thể đăng nhập để đăng ký thiết bị mới." });
+            return Ok(new { success = true, message = $"Đã reset Passkey cho SV {maSv}. Sinh viên có thể đăng ký khóa mới." });
         }
 
         // --- HÀM HỖ TRỢ ĐẺ TOKEN (Chỉ giữ lại 1 hàm chuẩn 4 tham số này) ---

@@ -21,7 +21,13 @@ public partial class SinhVien
 
     public string? SoDienThoai { get; set; }
 
-    public string? MaThietBi { get; set; }
+    public byte[]? PasskeyCredentialId { get; set; }
+
+    public byte[]? PasskeyPublicKey { get; set; }
+
+    public long? PasskeySignCount { get; set; } // Dùng long để tương thích với SQL BIGINT/INT
+
+    public byte[]? PasskeyUserHandle { get; set; }
 
     public string? AnhDaiDien { get; set; }
 

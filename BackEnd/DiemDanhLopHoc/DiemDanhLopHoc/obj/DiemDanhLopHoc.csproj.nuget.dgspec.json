@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "d:\\DATTTN_NHOM04_2026\\BackEnd\\DiemDanhLopHoc\\DiemDanhLopHoc.csproj": {}
+    "D:\\DATTTN_NHOM04_2026\\BackEnd\\DiemDanhLopHoc\\DiemDanhLopHoc.csproj": {}
   },
   "projects": {
-    "d:\\DATTTN_NHOM04_2026\\BackEnd\\DiemDanhLopHoc\\DiemDanhLopHoc.csproj": {
+    "D:\\DATTTN_NHOM04_2026\\BackEnd\\DiemDanhLopHoc\\DiemDanhLopHoc.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "d:\\DATTTN_NHOM04_2026\\BackEnd\\DiemDanhLopHoc\\DiemDanhLopHoc.csproj",
+        "projectUniqueName": "D:\\DATTTN_NHOM04_2026\\BackEnd\\DiemDanhLopHoc\\DiemDanhLopHoc.csproj",
         "projectName": "DiemDanhLopHoc",
-        "projectPath": "d:\\DATTTN_NHOM04_2026\\BackEnd\\DiemDanhLopHoc\\DiemDanhLopHoc.csproj",
+        "projectPath": "D:\\DATTTN_NHOM04_2026\\BackEnd\\DiemDanhLopHoc\\DiemDanhLopHoc.csproj",
         "packagesPath": "C:\\Users\\nhatm\\.nuget\\packages\\",
-        "outputPath": "d:\\DATTTN_NHOM04_2026\\BackEnd\\DiemDanhLopHoc\\obj\\",
+        "outputPath": "D:\\DATTTN_NHOM04_2026\\BackEnd\\DiemDanhLopHoc\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -57,6 +57,10 @@
             "CloudinaryDotNet": {
               "target": "Package",
               "version": "[1.28.0, )"
+            },
+            "Fido2": {
+              "target": "Package",
+              "version": "[4.0.1, )"
             },
             "Microsoft.AspNetCore.Authentication.JwtBearer": {
               "target": "Package",

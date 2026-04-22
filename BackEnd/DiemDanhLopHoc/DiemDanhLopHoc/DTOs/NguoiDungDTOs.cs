@@ -21,7 +21,7 @@ namespace DiemDanhLopHoc.DTOs
         public string TenSv { get; set; } = null!;
         public string Lop { get; set; } = null!;
         public string? Email { get; set; }
-        public string? MaThietBi { get; set; }
+        public bool HasPasskey { get; set; }
         public string? SoDienThoai { get; set; }
         public string? AnhDaiDien { get; set; }
     }
@@ -46,7 +46,7 @@ namespace DiemDanhLopHoc.DTOs
         public string? Email { get; set; }
         public string? SoDienThoai { get; set; }
         public string? AnhDaiDien { get; set; }
-        public string? MaThietBi { get; set; }
+        public bool HasPasskey { get; set; }
     }
 
     // DTO dùng để trả dữ liệu (Đã bổ sung Lop và MaThietBi, bỏ NgaySinh)
@@ -59,7 +59,7 @@ namespace DiemDanhLopHoc.DTOs
         public string? Email { get; set; }
         public string? SoDienThoai { get; set; }
         public string? AnhDaiDien { get; set; }
-        public string? MaThietBi { get; set; }
+        public bool HasPasskey { get; set; }
     }
 
     // DTO tạo mới (Tách HoLot, TenSv và thêm Lop bắt buộc)
@@ -103,11 +103,5 @@ namespace DiemDanhLopHoc.DTOs
         public string NewPassword { get; set; } = null!;
     }
 
-    // DTO cho đăng ký thiết bị (Web Crypto - ECDSA Public Key + FingerprintJS)
-    public class RegisterDeviceDto
-    {
-        public string MaSv { get; set; } = null!;
-        public string PublicKeyBase64 { get; set; } = null!; // SPKI format, tương thích với .NET ECDsa.ImportSubjectPublicKeyInfo
-        public string Fingerprint { get; set; } = null!; // Mã vân tay phần cứng do FingerprintJS sinh ra
-    }
+    // Lớp RegisterDeviceDto đã được bỏ vì hệ thống chuyển sang WebAuthn.
 }

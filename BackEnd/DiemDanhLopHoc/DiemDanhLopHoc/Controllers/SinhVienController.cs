@@ -34,7 +34,7 @@ namespace DiemDanhLopHoc.Controllers
                     Email = s.Email,
                     SoDienThoai = s.SoDienThoai,
                     AnhDaiDien = s.AnhDaiDien,
-                    MaThietBi = s.MaThietBi
+                    HasPasskey = s.PasskeyCredentialId != null
                 })
                 .ToListAsync();
             return Ok(new { success = true, data = danhSach });
@@ -55,7 +55,7 @@ namespace DiemDanhLopHoc.Controllers
                 Email = s.Email,
                 SoDienThoai = s.SoDienThoai,
                 AnhDaiDien = s.AnhDaiDien,
-                MaThietBi = s.MaThietBi
+                HasPasskey = s.PasskeyCredentialId != null
             }});
         }
 

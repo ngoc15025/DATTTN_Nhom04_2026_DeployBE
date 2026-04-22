@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using DiemDanhLopHoc.Data;
 using DiemDanhLopHoc.Models;
 using DiemDanhLopHoc.DTOs;
+using DiemDanhLopHoc.Utils;
 
 namespace DiemDanhLopHoc.Controllers
 {
@@ -145,6 +146,14 @@ namespace DiemDanhLopHoc.Controllers
             await _context.SaveChangesAsync();
 
             return Ok(new { success = true, message = "Đã xóa buổi học!" });
+        }
+
+        // 6. Lấy QR Token Động (Cập nhật sau mỗi 30s)
+        [HttpGet("{id}/qr-token")]
+        public IActionResult GetQrToken(int id)
+        {
+            var token = QrUtils.GenerateQrToken(id);
+            return Ok(new { success = true, token = token });
         }
     }
 }

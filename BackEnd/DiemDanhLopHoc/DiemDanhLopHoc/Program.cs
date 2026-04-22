@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Fido2NetLib;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,6 +24,16 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// --- CẤU HÌNH FIDO2 / WEBAUTHN ---
+builder.Services.AddMemoryCache(); // Dùng để lưu tạm Challenge (Yêu cầu WebAuthn)
+builder.Services.AddSingleton<IFido2>(new Fido2(new Fido2Configuration
+{
+    ServerDomain = "localhost",
+    ServerName = "STUNexus",
+    Origins = new HashSet<string> { "http://localhost:5173", "https://localhost:5173" },
+    TimestampDriftTolerance = 300000
+}));
 
 // --- CẤU HÌNH JWT AUTHENTICATION ---
 var jwtSettings = builder.Configuration.GetSection("Jwt");

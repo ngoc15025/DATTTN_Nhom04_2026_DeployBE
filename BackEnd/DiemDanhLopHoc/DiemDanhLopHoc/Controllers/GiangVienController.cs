@@ -81,7 +81,10 @@ namespace DiemDanhLopHoc.Controllers
             var sv = await _context.SinhViens.FindAsync(maSv);
             if (sv == null) return NotFound(new { success = false, message = "Không tìm thấy SV" });
 
-            sv.MaThietBi = null; // Xóa mã thiết bị cũ
+            sv.PasskeyCredentialId = null;
+            sv.PasskeyPublicKey = null;
+            sv.PasskeySignCount = null;
+            sv.PasskeyUserHandle = null;
             await _context.SaveChangesAsync();
 
             return Ok(new { success = true, message = "Đã reset thiết bị. Sinh viên có thể đăng ký máy mới!" });

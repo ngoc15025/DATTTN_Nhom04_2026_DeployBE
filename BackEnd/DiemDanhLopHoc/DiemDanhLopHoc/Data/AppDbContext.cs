@@ -234,9 +234,10 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Lop)
                 .HasMaxLength(50)
                 .IsUnicode(false);
-            entity.Property(e => e.MaThietBi)
-                .HasMaxLength(255)
-                .IsUnicode(false);
+            entity.Property(e => e.PasskeyCredentialId);
+            entity.Property(e => e.PasskeyPublicKey);
+            entity.Property(e => e.PasskeySignCount);
+            entity.Property(e => e.PasskeyUserHandle);
             entity.Property(e => e.MatKhau)
                 .HasMaxLength(255)
                 .IsUnicode(false);
