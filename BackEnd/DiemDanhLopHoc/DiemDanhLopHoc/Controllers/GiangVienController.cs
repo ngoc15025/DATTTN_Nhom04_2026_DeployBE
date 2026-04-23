@@ -85,9 +85,10 @@ namespace DiemDanhLopHoc.Controllers
             sv.PasskeyPublicKey = null;
             sv.PasskeySignCount = null;
             sv.PasskeyUserHandle = null;
+            sv.DeviceUUID = null; // Giải phóng thiết bị để sinh viên đăng ký lại
             await _context.SaveChangesAsync();
 
-            return Ok(new { success = true, message = "Đã reset thiết bị. Sinh viên có thể đăng ký máy mới!" });
+            return Ok(new { success = true, message = "Đã reset Passkey & thiết bị. Sinh viên có thể đăng ký máy mới!" });
         }
 
         // 4. Cập nhật (PUT)

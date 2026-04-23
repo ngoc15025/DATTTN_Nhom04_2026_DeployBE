@@ -31,11 +31,37 @@ namespace DiemDanhLopHoc.Controllers
         // ==========================================================
 
         [HttpGet("register-options")]
-        public async Task<IActionResult> MakeCredentialOptions([FromQuery] string maSv)
+        // Đã sửa: Nhận thêm deviceUuid từ Frontend gửi lên
+        public async Task<IActionResult> MakeCredentialOptions([FromQuery] string maSv, [FromQuery] string deviceUuid)
         {
             var sv = await _context.SinhViens.FindAsync(maSv);
             if (sv == null) return NotFound(new { message = "Không tìm thấy sinh viên." });
 
+            // -------------------------------------------------------------
+            // CHỐT CHẶN 1: MỘT TÀI KHOẢN CHỈ ĐƯỢC CÓ 1 PASSKEY (Chống ghi đè, chống đổi máy tự do)
+            // -------------------------------------------------------------
+            if (sv.PasskeyCredentialId != null)
+            {
+                return BadRequest(new { message = "Tài khoản này đã thiết lập Passkey trên một thiết bị. Nếu đổi máy, vui lòng liên hệ Giảng viên để reset!" });
+            }
+
+            // -------------------------------------------------------------
+            // CHỐT CHẶN 2: MỘT MÁY CHỈ ĐƯỢC TẠO PASSKEY CHO 1 TÀI KHOẢN (Chống mượn máy)
+            // -------------------------------------------------------------
+            if (string.IsNullOrEmpty(deviceUuid))
+            {
+                return BadRequest(new { message = "Thiếu định danh thiết bị (DeviceUUID). Vui lòng cập nhật ứng dụng." });
+            }
+
+            var isDeviceUsedByAnother = await _context.SinhViens
+                .AnyAsync(s => s.DeviceUUID == deviceUuid && s.MaSv != maSv);
+
+            if (isDeviceUsedByAnother)
+            {
+                return BadRequest(new { message = "Thiết bị này đã được sử dụng để đăng ký điểm danh cho một sinh viên khác. Không thể dùng chung thiết bị!" });
+            }
+
+            // Nếu qua được 2 chốt trên, tiến hành tạo Options cho hệ điều hành
             var userHandle = Encoding.UTF8.GetBytes(sv.MaSv);
             var user = new Fido2User
             {
@@ -44,8 +70,7 @@ namespace DiemDanhLopHoc.Controllers
                 Id = userHandle
             };
 
-            // Ép buộc sinh viên phải dùng thiết bị có Khóa màn hình (FaceID/Vân tay/PIN)
-            // của chính điện thoại đang cầm (Platform Authenticator)
+            // Ép buộc sinh viên phải dùng thiết bị có Khóa màn hình (FaceID/Vân tay/PIN) của chính điện thoại đang cầm
             var authenticatorSelection = new AuthenticatorSelection
             {
                 AuthenticatorAttachment = AuthenticatorAttachment.Platform,
@@ -61,8 +86,9 @@ namespace DiemDanhLopHoc.Controllers
                 AttestationPreference = AttestationConveyancePreference.None
             });
 
-            // Lưu Options vào Cache để Verify bước sau (5 phút)
-            _cache.Set($"fido2:reg:{maSv}", options.ToJson(), TimeSpan.FromMinutes(5));
+            // Gom cả OptionsJson và DeviceUuid vào Cache để Verify bước sau lấy ra dùng
+            var cacheData = new { OptionsJson = options.ToJson(), DeviceUuid = deviceUuid };
+            _cache.Set($"fido2:reg:{maSv}", JsonSerializer.Serialize(cacheData), TimeSpan.FromMinutes(5));
 
             return Ok(options);
         }
@@ -73,9 +99,14 @@ namespace DiemDanhLopHoc.Controllers
             var sv = await _context.SinhViens.FindAsync(maSv);
             if (sv == null) return NotFound(new { message = "Không tìm thấy sinh viên." });
 
-            var optionsJson = _cache.Get<string>($"fido2:reg:{maSv}");
-            if (string.IsNullOrEmpty(optionsJson))
+            var cacheStr = _cache.Get<string>($"fido2:reg:{maSv}");
+            if (string.IsNullOrEmpty(cacheStr))
                  return BadRequest(new { message = "Phiên đăng ký đã hết hạn. Vui lòng thử lại." });
+
+            // Bóc tách JSON từ Cache ra để lấy Options và DeviceUUID
+            var cacheData = JsonSerializer.Deserialize<JsonElement>(cacheStr);
+            var optionsJson = cacheData.GetProperty("OptionsJson").GetString();
+            var deviceUuid = cacheData.GetProperty("DeviceUuid").GetString();
 
             var options = CredentialCreateOptions.FromJson(optionsJson);
 
@@ -92,14 +123,15 @@ namespace DiemDanhLopHoc.Controllers
                     }
                 });
 
-                // Cập nhật DB
+                // CẬP NHẬT DB: Lưu Passkey và ĐÓNG DẤU THIẾT BỊ (DeviceUUID)
                 sv.PasskeyCredentialId = success.Id;
                 sv.PasskeyPublicKey = success.PublicKey;
                 sv.PasskeySignCount = success.SignCount;
                 sv.PasskeyUserHandle = success.User.Id;
+                sv.DeviceUUID = deviceUuid; // Chốt hạ: cái máy này là của sinh viên này!
                 
                 await _context.SaveChangesAsync();
-                _cache.Remove($"fido2:reg:{maSv}"); // Dọn dẹp cache
+                _cache.Remove($"fido2:reg:{maSv}");
 
                 return Ok(new { success = true, message = "Đăng ký Khóa truy cập Sinh trắc học thành công!" });
             }

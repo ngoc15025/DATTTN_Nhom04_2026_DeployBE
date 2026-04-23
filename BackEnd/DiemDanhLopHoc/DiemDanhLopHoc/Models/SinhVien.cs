@@ -29,6 +29,9 @@ public partial class SinhVien
 
     public byte[]? PasskeyUserHandle { get; set; }
 
+    // Định danh trình duyệt/thiết bị - Chốt chặn 1 máy 1 sinh viên
+    public string? DeviceUUID { get; set; }
+
     public string? AnhDaiDien { get; set; }
 
     public virtual ICollection<DiemDanh> DiemDanhs { get; set; } = new List<DiemDanh>();
