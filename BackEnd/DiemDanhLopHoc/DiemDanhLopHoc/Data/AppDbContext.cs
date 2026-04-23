@@ -238,6 +238,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.PasskeyPublicKey);
             entity.Property(e => e.PasskeySignCount);
             entity.Property(e => e.PasskeyUserHandle);
+            entity.Property(e => e.DeviceUUID).HasMaxLength(100);
             entity.Property(e => e.MatKhau)
                 .HasMaxLength(255)
                 .IsUnicode(false);
