@@ -92,27 +92,8 @@ namespace DiemDanhLopHoc.Controllers
             return BadRequest(new { success = false, message = "Mật khẩu cũ không chính xác!" });
         }
 
-        // Đăng ký thiết bị cũ đã được thay thế bằng WebAuthnController -> RegisterVerify
-
-        // Reset thiết bị: Chỉ định cho Giảng viên / Admin dùng để mở khóa cấp lại thiết bị Passkey
-        [HttpPost("reset-device/{maSv}")]
-        [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin,Lecturer")]
-        public async Task<IActionResult> ResetDevice(string maSv)
-        {
-            var sinhVien = await _context.SinhViens.FindAsync(maSv);
-            if (sinhVien == null)
-                return NotFound(new { success = false, message = "Không tìm thấy sinh viên." });
-            
-            // Xóa Passkey cũ, đưa về NULL
-            sinhVien.PasskeyCredentialId = null;
-            sinhVien.PasskeyPublicKey = null;
-            sinhVien.PasskeySignCount = null;
-            sinhVien.PasskeyUserHandle = null;
-            await _context.SaveChangesAsync();
-            
-            return Ok(new { success = true, message = $"Đã reset Passkey cho SV {maSv}. Sinh viên có thể đăng ký khóa mới." });
-        }
-
+        // Đăng ký mật khẩu vân tay/thiết bị cũ đã được thay thế hoàn toàn bằng WebAuthnController
+        
         // --- HÀM HỖ TRỢ ĐẺ TOKEN (Chỉ giữ lại 1 hàm chuẩn 4 tham số này) ---
         private string GenerateJwtToken(string taiKhoan, string role, string hoTen, string id)
         {
