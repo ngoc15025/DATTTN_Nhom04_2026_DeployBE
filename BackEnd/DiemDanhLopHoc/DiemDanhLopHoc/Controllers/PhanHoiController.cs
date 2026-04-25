@@ -82,38 +82,39 @@ namespace DiemDanhLopHoc.Controllers
             return Ok(new { success = true, data = danhSach });
         }
 
-        // GET /api/phanhoi/lecturer/{maGv} - Giảng viên xem tất cả khiếu nại của lớp mình phụ trách
+        // GET /api/phanhoi/lecturer/{maGv} - Giang vien xem tat ca khieu nai cua lop minh phu trach
         [HttpGet("lecturer/{maGv}")]
         public async Task<IActionResult> GetByLecturer(string maGv)
         {
-            var danhSach = await _context.PhanHois
-                .Include(p => p.MaDiemDanhNavigation)
-                    .ThenInclude(d => d.MaBuoiHocNavigation)
-                        .ThenInclude(b => b.MaLopNavigation)
-                            .ThenInclude(l => l.MaMonNavigation)
-                .Include(p => p.MaDiemDanhNavigation)
-                    .ThenInclude(d => d.MaSvNavigation)
-                .Where(p => p.MaDiemDanhNavigation.MaBuoiHocNavigation.MaLopNavigation.MaGv == maGv)
-                .OrderByDescending(p => p.ThoiGianGui)
-                .Select(p => new PhanHoiDto
+            // Dung LINQ join thay vi Include 4 tang — SQL gon hon, khong load du lieu thua
+            var danhSach = await (
+                from ph in _context.PhanHois
+                join dd in _context.DiemDanhs on ph.MaDiemDanh equals dd.MaDiemDanh
+                join bh in _context.BuoiHocs on dd.MaBuoiHoc equals bh.MaBuoiHoc
+                join lh in _context.LopHocs on bh.MaLop equals lh.MaLop
+                join sv in _context.SinhViens on dd.MaSv equals sv.MaSv into svJoin
+                from sv in svJoin.DefaultIfEmpty()
+                join mh in _context.MonHocs on lh.MaMon equals mh.MaMon into mhJoin
+                from mh in mhJoin.DefaultIfEmpty()
+                where lh.MaGv == maGv
+                orderby ph.ThoiGianGui descending
+                select new PhanHoiDto
                 {
-                    MaPhanHoi = p.MaPhanHoi,
-                    MaDiemDanh = p.MaDiemDanh,
-                    MaSv = p.MaDiemDanhNavigation.MaSv,
-                    TenSinhVien = p.MaDiemDanhNavigation.MaSvNavigation != null
-                        ? (p.MaDiemDanhNavigation.MaSvNavigation.HoLot + " " + p.MaDiemDanhNavigation.MaSvNavigation.TenSv) : null,
-                    TenLop = p.MaDiemDanhNavigation.MaBuoiHocNavigation.MaLopNavigation.TenLop,
-                    TenMon = p.MaDiemDanhNavigation.MaBuoiHocNavigation.MaLopNavigation.MaMonNavigation != null
-                        ? p.MaDiemDanhNavigation.MaBuoiHocNavigation.MaLopNavigation.MaMonNavigation.TenMon : null,
-                    NgayHoc = p.MaDiemDanhNavigation.MaBuoiHocNavigation.NgayHoc.ToDateTime(TimeOnly.MinValue),
-                    TrangThaiDiemDanh = p.MaDiemDanhNavigation.TrangThai,
-                    NoiDung = p.NoiDung,
-                    MinhChung = p.MinhChung,
-                    ThoiGianGui = p.ThoiGianGui,
-                    PhanHoiGv = p.PhanHoiGv,
-                    TrangThai = p.TrangThai
-                })
-                .ToListAsync();
+                    MaPhanHoi         = ph.MaPhanHoi,
+                    MaDiemDanh        = ph.MaDiemDanh,
+                    MaSv              = dd.MaSv,
+                    TenSinhVien       = sv != null ? sv.HoLot + " " + sv.TenSv : null,
+                    TenLop            = lh.TenLop,
+                    TenMon            = mh != null ? mh.TenMon : null,
+                    NgayHoc           = bh.NgayHoc.ToDateTime(TimeOnly.MinValue),
+                    TrangThaiDiemDanh = dd.TrangThai,
+                    NoiDung           = ph.NoiDung,
+                    MinhChung         = ph.MinhChung,
+                    ThoiGianGui       = ph.ThoiGianGui,
+                    PhanHoiGv         = ph.PhanHoiGv,
+                    TrangThai         = ph.TrangThai
+                }
+            ).ToListAsync();
 
             return Ok(new { success = true, data = danhSach });
         }
