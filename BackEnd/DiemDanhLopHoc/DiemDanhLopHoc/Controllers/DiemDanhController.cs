@@ -20,29 +20,67 @@ namespace DiemDanhLopHoc.Controllers
         }
 
         // 1. Lấy thống kê và lịch sử điểm danh của sinh viên
+        // Bao gồm cả buổi đã chốt sổ mà SV chưa điểm danh → hiển thị "Vắng"
         [HttpGet("student/{maSv}")]
         public async Task<IActionResult> GetStudentAttendance(string maSv)
         {
-            var history = await _context.DiemDanhs
+            // Lấy tất cả bản ghi điểm danh có thực của SV
+            var existingRecords = await _context.DiemDanhs
                 .Where(d => d.MaSv == maSv)
                 .Include(d => d.MaBuoiHocNavigation)
                     .ThenInclude(b => b.MaLopNavigation)
                         .ThenInclude(l => l.MaMonNavigation)
-                .OrderByDescending(d => d.ThoiGianQuet)
                 .Select(d => new DiemDanhDto
                 {
                     MaDiemDanh = d.MaDiemDanh,
-                    MaBuoiHoc = d.MaBuoiHoc,
-                    MaSv = d.MaSv,
-                    TrangThai = d.TrangThai,
+                    MaBuoiHoc   = d.MaBuoiHoc,
+                    MaSv        = d.MaSv,
+                    TrangThai   = d.TrangThai,
                     ThoiGianQuet = d.ThoiGianQuet,
-                    GhiChu = d.GhiChu,
-                    TenMon = d.MaBuoiHocNavigation.MaLopNavigation.MaMonNavigation.TenMon,
-                    NgayHoc = d.MaBuoiHocNavigation.NgayHoc
+                    GhiChu      = d.GhiChu,
+                    TenMon      = d.MaBuoiHocNavigation.MaLopNavigation.MaMonNavigation.TenMon,
+                    NgayHoc     = d.MaBuoiHocNavigation.NgayHoc
                 })
                 .ToListAsync();
 
-            return Ok(history);
+            // Tập hợp các buổi SV đã có bản ghi (để loại trừ khi tạo "vắng ảo")
+            var recordedSessionIds = existingRecords.Select(r => r.MaBuoiHoc).ToHashSet();
+
+            // Tìm các lớp SV đang tham gia
+            var maLopList = await _context.LopHocs
+                .Where(l => l.MaSvs.Any(sv => sv.MaSv == maSv))
+                .Select(l => l.MaLop)
+                .ToListAsync();
+
+            // Tìm các buổi học đã CHỐT SỔ (TrangThaiBh = 2) mà SV CHƯA có bản ghi điểm danh
+            var missedSessions = await (
+                from bh in _context.BuoiHocs
+                join lh in _context.LopHocs on bh.MaLop equals lh.MaLop
+                join mh in _context.MonHocs on lh.MaMon equals mh.MaMon into mhJoin
+                from mh in mhJoin.DefaultIfEmpty()
+                where maLopList.Contains(bh.MaLop)
+                   && bh.TrangThaiBh == 2                          // Buổi đã chốt sổ
+                   && !recordedSessionIds.Contains(bh.MaBuoiHoc)  // SV chưa có bản ghi
+                select new DiemDanhDto
+                {
+                    MaDiemDanh   = 0,               // Không có ID thực
+                    MaBuoiHoc    = bh.MaBuoiHoc,
+                    MaSv         = maSv,
+                    TrangThai    = 4,               // 4 = Vắng không phép
+                    ThoiGianQuet = null,
+                    GhiChu       = "Vắng – Không điểm danh trước khi giảng viên chốt sổ.",
+                    TenMon       = mh != null ? mh.TenMon : null,
+                    NgayHoc      = bh.NgayHoc
+                }
+            ).ToListAsync();
+
+            // Gộp và sắp xếp theo ngày giảm dần
+            var fullHistory = existingRecords
+                .Concat(missedSessions)
+                .OrderByDescending(d => d.NgayHoc)
+                .ToList();
+
+            return Ok(fullHistory);
         }
 
 
