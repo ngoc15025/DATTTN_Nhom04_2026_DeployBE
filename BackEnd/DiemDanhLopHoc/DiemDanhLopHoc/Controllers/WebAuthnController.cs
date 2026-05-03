@@ -181,7 +181,7 @@ namespace DiemDanhLopHoc.Controllers
                 {
                     // Ghi nhận gian lận GPS ngay lập tức
                     calculatedDistance = Math.Max(0, Math.Round(rawDistance - 32));
-                    await RecordAttendance(request.MaBuoiHoc, request.MaSv, 5, request.Lat, request.Long, $"Gian lận vị trí: Cách {calculatedDistance} mét");
+                    await RecordAttendance(request.MaBuoiHoc, request.MaSv, 5, request.Lat, request.Long, $"Phát hiện tọa độ ngoài vùng cho phép điểm danh!");
                     return StatusCode(403, new { message = "Gian lận vị trí! Bạn đang ở quá xa phòng học." });
                 }
                 calculatedDistance = Math.Max(0, Math.Round(rawDistance - 32));
@@ -259,7 +259,7 @@ namespace DiemDanhLopHoc.Controllers
             }
             catch (Exception ex)
             {
-                await RecordAttendance(maBuoiHoc, maSv, 5, lat, lng, "Phát hiện giả mạo chữ ký thiết bị (" + ex.Message + ")");
+                await RecordAttendance(maBuoiHoc, maSv, 5, lat, lng, "Phát hiện thiết bị không phù hợp!");
                 return StatusCode(403, new { message = "Phát hiện gian lận thiết bị/chữ ký không hợp lệ." });
             }
         }
