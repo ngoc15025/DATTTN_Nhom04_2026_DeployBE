@@ -1,11 +1,12 @@
 {
   "version": 2,
-  "dgSpecHash": "nkii/ZZB6WY=",
+  "dgSpecHash": "wbfrLU+1YwQ=",
   "success": true,
   "projectFilePath": "D:\\DATTTN_NHOM04_2026\\BackEnd\\DiemDanhLopHoc\\DiemDanhLopHoc.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\nhatm\\.nuget\\packages\\azure.core\\1.25.0\\azure.core.1.25.0.nupkg.sha512",
     "C:\\Users\\nhatm\\.nuget\\packages\\azure.identity\\1.7.0\\azure.identity.1.7.0.nupkg.sha512",
+    "C:\\Users\\nhatm\\.nuget\\packages\\bcrypt.net-next\\4.0.3\\bcrypt.net-next.4.0.3.nupkg.sha512",
     "C:\\Users\\nhatm\\.nuget\\packages\\closedxml\\0.105.0\\closedxml.0.105.0.nupkg.sha512",
     "C:\\Users\\nhatm\\.nuget\\packages\\closedxml.parser\\2.0.0\\closedxml.parser.2.0.0.nupkg.sha512",
     "C:\\Users\\nhatm\\.nuget\\packages\\cloudinarydotnet\\1.28.0\\cloudinarydotnet.1.28.0.nupkg.sha512",

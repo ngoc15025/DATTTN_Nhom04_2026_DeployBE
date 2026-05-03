@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using DiemDanhLopHoc.Data;
 using DiemDanhLopHoc.Models;
 using DiemDanhLopHoc.DTOs;
+using DiemDanhLopHoc.Utils;
 
 namespace DiemDanhLopHoc.Controllers
 {
@@ -63,7 +64,7 @@ namespace DiemDanhLopHoc.Controllers
             {
                 MaGv = request.MaGv,
                 TaiKhoan = request.TaiKhoan,
-                MatKhau = request.MatKhau,
+                MatKhau = PasswordUtils.Hash(request.MatKhau),
                 HoLot = request.HoLot,
                 TenGv = request.TenGv,
                 TrangThai = 1 // 1 là Hoạt động

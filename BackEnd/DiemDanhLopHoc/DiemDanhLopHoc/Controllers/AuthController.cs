@@ -28,66 +28,97 @@ namespace DiemDanhLopHoc.Controllers
         public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
         {
             if (string.IsNullOrEmpty(request.TaiKhoan) || string.IsNullOrEmpty(request.MatKhau))
-            {
                 return BadRequest(new { success = false, message = "Vui lòng nhập đầy đủ tài khoản và mật khẩu." });
+
+            // Helper xác thực mật khẩu — tương thích ngược: hash hoặc plaintext cũ
+            bool CheckPassword(string stored, string input)
+            {
+                if (PasswordUtils.IsHashed(stored))
+                    return PasswordUtils.Verify(input, stored);
+                return stored == input; // Plaintext cũ
             }
 
-            // 1. Gõ cửa nhà Admin (QuanTriVien)
-            var admin = await _context.QuanTriViens
-                .FirstOrDefaultAsync(x => x.TaiKhoan == request.TaiKhoan && x.MatKhau == request.MatKhau);
-            if (admin != null)
+            // 1. Admin
+            var admin = await _context.QuanTriViens.FirstOrDefaultAsync(x => x.TaiKhoan == request.TaiKhoan);
+            if (admin != null && CheckPassword(admin.MatKhau, request.MatKhau))
             {
-                var token = GenerateJwtToken(admin.TaiKhoan, "Admin", admin.HoTen, admin.MaQtv);
-                return Ok(new { success = true, message = "Đăng nhập thành công", data = new { token = token, role = "Admin", name = admin.HoTen } });
-            }
-
-            // 2. Gõ cửa nhà Giảng Viên
-            var giangVien = await _context.GiangViens
-                .FirstOrDefaultAsync(x => x.TaiKhoan == request.TaiKhoan && x.MatKhau == request.MatKhau);
-            if (giangVien != null)
-            {
-                // Kiểm tra tài khoản bị khóa
-                if (giangVien.TrangThai != 1)
+                // Tự động nâng cấp hash nếu còn plaintext
+                if (!PasswordUtils.IsHashed(admin.MatKhau))
                 {
-                    return Unauthorized(new { success = false, message = "Tài khoản giảng viên này đã bị khóa. Vui lòng liên hệ Quản trị viên." });
+                    admin.MatKhau = PasswordUtils.Hash(request.MatKhau);
+                    await _context.SaveChangesAsync();
                 }
-                var hoTenDayDu = $"{giangVien.HoLot} {giangVien.TenGv}";
-                var token = GenerateJwtToken(giangVien.TaiKhoan, "Lecturer", hoTenDayDu, giangVien.MaGv);
-                return Ok(new { success = true, data = new { token, role = "Lecturer", name = hoTenDayDu } });
+                var token = GenerateJwtToken(admin.TaiKhoan, "Admin", admin.HoTen, admin.MaQtv);
+                return Ok(new { success = true, message = "Đăng nhập thành công", data = new { token, role = "Admin", name = admin.HoTen } });
             }
 
-            // 3. Gõ cửa nhà Sinh Viên
-            var sinhVien = await _context.SinhViens
-                .FirstOrDefaultAsync(x => x.TaiKhoan == request.TaiKhoan && x.MatKhau == request.MatKhau);
-            if (sinhVien != null)
+            // 2. Giảng viên
+            var giangVien = await _context.GiangViens.FirstOrDefaultAsync(x => x.TaiKhoan == request.TaiKhoan);
+            if (giangVien != null && CheckPassword(giangVien.MatKhau, request.MatKhau))
             {
-                var hoTenDayDu = $"{sinhVien.HoLot} {sinhVien.TenSv}";
-                var token = GenerateJwtToken(sinhVien.TaiKhoan, "Student", hoTenDayDu, sinhVien.MaSv);
+                if (giangVien.TrangThai != 1)
+                    return Unauthorized(new { success = false, message = "Tài khoản giảng viên này đã bị khóa. Vui lòng liên hệ Quản trị viên." });
+
+                if (!PasswordUtils.IsHashed(giangVien.MatKhau))
+                {
+                    giangVien.MatKhau = PasswordUtils.Hash(request.MatKhau);
+                    await _context.SaveChangesAsync();
+                }
+                var hoTenGv = $"{giangVien.HoLot} {giangVien.TenGv}";
+                var token = GenerateJwtToken(giangVien.TaiKhoan, "Lecturer", hoTenGv, giangVien.MaGv);
+                return Ok(new { success = true, data = new { token, role = "Lecturer", name = hoTenGv } });
+            }
+
+            // 3. Sinh viên
+            var sinhVien = await _context.SinhViens.FirstOrDefaultAsync(x => x.TaiKhoan == request.TaiKhoan);
+            if (sinhVien != null && CheckPassword(sinhVien.MatKhau, request.MatKhau))
+            {
+                if (!PasswordUtils.IsHashed(sinhVien.MatKhau))
+                {
+                    sinhVien.MatKhau = PasswordUtils.Hash(request.MatKhau);
+                    await _context.SaveChangesAsync();
+                }
+                var hoTenSv = $"{sinhVien.HoLot} {sinhVien.TenSv}";
+                var token = GenerateJwtToken(sinhVien.TaiKhoan, "Student", hoTenSv, sinhVien.MaSv);
                 return Ok(new { success = true, data = new {
-                    token,
-                    role = "Student",
-                    name = hoTenDayDu,
-                    anhDaiDien = sinhVien.AnhDaiDien,  // Trả URL ảnh Cloudinary về ngay khi đăng nhập
+                    token, role = "Student", name = hoTenSv,
+                    anhDaiDien = sinhVien.AnhDaiDien,
                     hasPasskey = sinhVien.PasskeyCredentialId != null
                 }});
             }
 
-            // 4. Tìm cả 3 bảng không ra ai
             return Unauthorized(new { success = false, message = "Tài khoản hoặc mật khẩu không chính xác!" });
         }
 
         [HttpPost("change-password")]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto request)
         {
-            // Tìm trong 3 bảng
-            var admin = await _context.QuanTriViens.FirstOrDefaultAsync(x => x.TaiKhoan == request.TaiKhoan && x.MatKhau == request.OldPassword);
-            if (admin != null) { admin.MatKhau = request.NewPassword; await _context.SaveChangesAsync(); return Ok(new { success = true, message = "Đổi mật khẩu thành công!" }); }
+            bool CheckPassword(string stored, string input)
+                => PasswordUtils.IsHashed(stored) ? PasswordUtils.Verify(input, stored) : stored == input;
 
-            var gv = await _context.GiangViens.FirstOrDefaultAsync(x => x.TaiKhoan == request.TaiKhoan && x.MatKhau == request.OldPassword);
-            if (gv != null) { gv.MatKhau = request.NewPassword; await _context.SaveChangesAsync(); return Ok(new { success = true, message = "Đổi mật khẩu thành công!" }); }
+            var admin = await _context.QuanTriViens.FirstOrDefaultAsync(x => x.TaiKhoan == request.TaiKhoan);
+            if (admin != null && CheckPassword(admin.MatKhau, request.OldPassword))
+            {
+                admin.MatKhau = PasswordUtils.Hash(request.NewPassword);
+                await _context.SaveChangesAsync();
+                return Ok(new { success = true, message = "Đổi mật khẩu thành công!" });
+            }
 
-            var sv = await _context.SinhViens.FirstOrDefaultAsync(x => x.TaiKhoan == request.TaiKhoan && x.MatKhau == request.OldPassword);
-            if (sv != null) { sv.MatKhau = request.NewPassword; await _context.SaveChangesAsync(); return Ok(new { success = true, message = "Đổi mật khẩu thành công!" }); }
+            var gv = await _context.GiangViens.FirstOrDefaultAsync(x => x.TaiKhoan == request.TaiKhoan);
+            if (gv != null && CheckPassword(gv.MatKhau, request.OldPassword))
+            {
+                gv.MatKhau = PasswordUtils.Hash(request.NewPassword);
+                await _context.SaveChangesAsync();
+                return Ok(new { success = true, message = "Đổi mật khẩu thành công!" });
+            }
+
+            var sv = await _context.SinhViens.FirstOrDefaultAsync(x => x.TaiKhoan == request.TaiKhoan);
+            if (sv != null && CheckPassword(sv.MatKhau, request.OldPassword))
+            {
+                sv.MatKhau = PasswordUtils.Hash(request.NewPassword);
+                await _context.SaveChangesAsync();
+                return Ok(new { success = true, message = "Đổi mật khẩu thành công!" });
+            }
 
             return BadRequest(new { success = false, message = "Mật khẩu cũ không chính xác!" });
         }

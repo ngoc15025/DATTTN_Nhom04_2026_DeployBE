@@ -1,6 +1,7 @@
 using DiemDanhLopHoc.Data;
 using DiemDanhLopHoc.DTOs;
 using DiemDanhLopHoc.Models;
+using DiemDanhLopHoc.Utils;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -81,7 +82,7 @@ namespace DiemDanhLopHoc.Controllers
             {
                 MaSv = request.MaSv,
                 TaiKhoan = request.TaiKhoan,
-                MatKhau = request.MatKhau,
+                MatKhau = PasswordUtils.Hash(request.MatKhau),
                 HoLot = request.HoLot,
                 TenSv = request.TenSv,
                 Lop = request.Lop,
@@ -130,7 +131,7 @@ namespace DiemDanhLopHoc.Controllers
                 {
                     MaSv = req.MaSv,
                     TaiKhoan = req.TaiKhoan,
-                    MatKhau = req.MatKhau,
+                    MatKhau = PasswordUtils.Hash(req.MatKhau),
                     HoLot = req.HoLot,
                     TenSv = req.TenSv,
                     Lop = req.Lop,
