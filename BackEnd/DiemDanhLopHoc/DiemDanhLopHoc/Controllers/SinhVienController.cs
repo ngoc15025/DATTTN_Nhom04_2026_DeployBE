@@ -10,7 +10,7 @@ namespace DiemDanhLopHoc.Controllers
 {
     [Route("api/sinhvien")]
     [ApiController]
-    [Authorize(Roles = "Admin,Lecturer")]
+    [Authorize(Roles = "Admin,Lecturer,Student")]
     public class SinhVienController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -25,6 +25,7 @@ namespace DiemDanhLopHoc.Controllers
         
 
         [HttpGet]
+        [Authorize(Roles = "Admin,Lecturer")]
         public async Task<IActionResult> GetAll()
         {
             var danhSach = await _context.SinhViens
@@ -63,6 +64,7 @@ namespace DiemDanhLopHoc.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin,Lecturer")]
         public async Task<IActionResult> Create([FromBody] TaoSinhVienDto request)
         {
             if (string.IsNullOrWhiteSpace(request.MaSv) ||
@@ -110,6 +112,7 @@ namespace DiemDanhLopHoc.Controllers
         }
 
         [HttpPost("import")]
+        [Authorize(Roles = "Admin,Lecturer")]
         public async Task<IActionResult> ImportExcel([FromBody] List<TaoSinhVienDto> requests)
         {
             var newStudents = new List<SinhVien>();
@@ -158,6 +161,7 @@ namespace DiemDanhLopHoc.Controllers
         }
 
         [HttpPut("{maSv}")]
+        [Authorize(Roles = "Admin,Lecturer")]
         public async Task<IActionResult> Update(string maSv, [FromBody] CapNhatSinhVienDto request)
         {
             var sinhVien = await _context.SinhViens.FindAsync(maSv);
@@ -176,6 +180,7 @@ namespace DiemDanhLopHoc.Controllers
         }
 
         [HttpDelete("{maSv}")]
+        [Authorize(Roles = "Admin,Lecturer")]
         public async Task<IActionResult> Delete(string maSv)
         {
             var sinhVien = await _context.SinhViens.FindAsync(maSv);
