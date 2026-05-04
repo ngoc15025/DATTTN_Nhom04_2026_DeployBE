@@ -1,9 +1,9 @@
 import React, { useContext } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { FaChalkboardTeacher, FaUserGraduate, FaLayerGroup, FaBook, FaChartBar, FaSignOutAlt } from 'react-icons/fa';
+import { FaChalkboardTeacher, FaUserGraduate, FaLayerGroup, FaBook, FaChartBar, FaSignOutAlt, FaTimes } from 'react-icons/fa';
 import { AuthContext } from '../context/AuthContext';
 
-const Sidebar = () => {
+const Sidebar = ({ show, onClose }) => {
   const { logout } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -13,17 +13,24 @@ const Sidebar = () => {
   };
 
   return (
-    <div className="sidebar">
-      <div className="brand">
+    <div className={`sidebar shadow-sm ${show ? 'show' : ''}`}>
+      <div className="brand d-flex align-items-center justify-content-between">
         <img src="/logo.png" alt="STU Portal" style={{maxHeight: '60px', objectFit: 'contain'}} />
+        <button 
+          className="btn btn-light d-md-none border-0 rounded-circle" 
+          onClick={onClose}
+          style={{width: '35px', height: '35px', padding: 0}}
+        >
+          <FaTimes />
+        </button>
       </div>
       
       <div className="sidebar-nav">
-        <NavLink to="/admin/dashboard" className={({isActive}) => `nav-item-link ${isActive ? 'active' : ''}`}>
+        <NavLink to="/admin/dashboard" onClick={onClose} className={({isActive}) => `nav-item-link ${isActive ? 'active' : ''}`}>
           <FaChartBar />
           <span>Dashboard</span>
         </NavLink>
-        <NavLink to="/admin/lecturers" className={({isActive}) => `nav-item-link ${isActive ? 'active' : ''}`}>
+        <NavLink to="/admin/lecturers" onClick={onClose} className={({isActive}) => `nav-item-link ${isActive ? 'active' : ''}`}>
           <FaChalkboardTeacher />
           <span>Quản lý Giảng viên</span>
         </NavLink>

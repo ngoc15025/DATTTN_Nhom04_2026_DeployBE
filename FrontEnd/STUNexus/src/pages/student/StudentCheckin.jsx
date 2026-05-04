@@ -1,69 +1,113 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import fpPromise from '@fingerprintjs/fingerprintjs';
-import { FaMapMarkerAlt, FaCheckCircle, FaExclamationTriangle, FaFingerprint, FaQrcode } from 'react-icons/fa';
+import axiosClient from '../../utils/axiosClient';
+import { AuthContext } from '../../context/AuthContext';
+import { FaMapMarkerAlt, FaCheckCircle, FaExclamationTriangle, FaShieldAlt, FaQrcode } from 'react-icons/fa';
 
 const StudentCheckin = () => {
-  const { classId } = useParams();
+  const { classId } = useParams(); // classId is MaBuoiHoc
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
+  const { user, registerPasskey } = useContext(AuthContext);
   
-  const [status, setStatus] = useState('checking'); // checking | success | error
-  const [message, setMessage] = useState('Đang lấy thông tin định vị và thiết bị...');
+  const [status, setStatus] = useState('checking');
+  const [message, setMessage] = useState('Đang chuẩn bị xác thực thiết bị...');
   const [gps, setGps] = useState(null);
-  const [fingerprint, setFingerprint] = useState(null);
+  const [distance, setDistance] = useState(null);
+  const [errorFlags, setErrorFlags] = useState({ isGpsFraud: false, isDeviceFraud: false });
+  const [browserWarning, setBrowserWarning] = useState(null);
+
+  // Kiểm tra trình duyệt khi tải trang
+  useEffect(() => {
+    const ua = navigator.userAgent;
+    const isIOS = /iPad|iPhone|iPod/.test(ua);
+    const isAndroid = /Android/.test(ua);
+    
+    if (!isIOS && isAndroid) {
+      // Chỉ cảnh báo trên Android - các trình duyệt không tương thích
+      const isCocCoc = ua.includes('coccoc') || ua.includes('CocCoc');
+      const isInAppZaloFB = ua.includes('FBAN') || ua.includes('FBAV') || ua.includes('ZaloApp') || ua.includes('Instagram');
+      
+      if (isCocCoc || isInAppZaloFB) {
+        setBrowserWarning('Trình duyệt này có thể không hỗ trợ Passkey trên Android. Nếu gặp lỗi, vui lòng nhấn "⋮" góc trên phải → "Mở bằng Chrome" để thiết lập Passkey.');
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const performCheckin = async () => {
       try {
-        // 1. Lấy Fingerprint hash
-        const fp = await fpPromise.load();
-        const result = await fp.get();
-        const deviceId = result.visitorId;
-        setFingerprint(deviceId);
+        const maSv = user?.MaSV || user?.MaId;
+        if (!maSv) throw new Error('Không xác định được tài khoản sinh viên.');
 
-        // 2. Lấy định vị GPS
-        if (!navigator.geolocation) {
-          throw new Error('Trình duyệt không hỗ trợ truy cập GPS');
-        }
+        setMessage('Đang lấy tọa độ GPS...');
+        if (!navigator.geolocation) throw new Error('Trình duyệt không hỗ trợ GPS.');
 
         navigator.geolocation.getCurrentPosition(
-          (position) => {
+          async (position) => {
             const { latitude, longitude } = position.coords;
             setGps({ lat: latitude, lng: longitude });
-            
-            // Toạ độ gốc giả định của lớp học (Trường STU)
-            const latGoc = 10.738;
-            const lngGoc = 106.678;
-            
-            const diffLat = Math.abs(latitude - latGoc);
-            const diffLng = Math.abs(longitude - lngGoc);
-            
-            // Sai số cho phép khoảng 1-2km cho mục đích thử nghiệm
-            if (diffLat > 0.05 || diffLng > 0.05) {
-              setStatus('error');
-              setMessage('Bạn đang ở quá xa vị trí lớp học. Yêu cầu có mặt tại phòng học!');
-            } else {
+            setMessage('Đang ký xác thực thiết bị...');
+
+            try {
+              // GIAI ĐOẠN 1: Gửi GPS + QR Token lên BE để đối chiếu và lấy Options
+              setMessage('Đối chiếu thông tin và yêu cầu xác thực...');
+              
+              const optionsRes = await axiosClient.post('/webauthn/assertion-options', {
+                 maSv: maSv,
+                 maBuoiHoc: parseInt(classId),
+                 lat: parseFloat(latitude.toFixed(6)),
+                 long: parseFloat(longitude.toFixed(6)),
+                 qrToken: token
+              });
+
+              // GIAI ĐOẠN 2: Hiển thị FaceID/Vân tay của trình duyệt
+              setMessage('Vui lòng xác thực sinh trắc học...');
+              const { startAuthentication } = await import('@simplewebauthn/browser');
+              
+              let assertionResp;
+              try {
+                  assertionResp = await startAuthentication(optionsRes.data);
+              } catch (authErr) {
+                  throw new Error('Bạn đã hủy hoặc xác thực Sinh trắc học thất bại!');
+              }
+
+              setMessage('Đang hoàn tất điểm danh...');
+
+              // GIAI ĐOẠN 3: Gửi kết quả chữ ký lên xác minh
+              const verifyRes = await axiosClient.post(`/webauthn/assertion-verify?maSv=${maSv}`, assertionResp);
+
               setStatus('success');
-              setMessage('Điểm danh thành công! Đã ghi nhận thiết bị hợp lệ.');
+              setMessage('Điểm danh thành công!');
+              if (verifyRes.data.distance !== undefined) setDistance(verifyRes.data.distance);
+            } catch (err) {
+              setStatus('error');
+              setMessage(err.response?.data?.message || err.message || 'Điểm danh thất bại!');
+              const data = err.response?.data || {};
+              if (data.distance !== undefined) setDistance(data.distance);
+              
+              if (data.isGpsFraud !== undefined || data.isDeviceFraud !== undefined) {
+                 setErrorFlags({ isGpsFraud: !!data.isGpsFraud, isDeviceFraud: !!data.isDeviceFraud });
+              } else {
+                 setErrorFlags({ isGpsFraud: true, isDeviceFraud: false });
+              }
             }
           },
-          (err) => {
+          () => {
             setStatus('error');
-            setMessage('Không thể lấy vị trí. Vui lòng bật kết nối vị trí (GPS) cho trình duyệt!');
+            setMessage('Không thể lấy vị trí. Vui lòng bật GPS cho trình duyệt!');
+            setErrorFlags({ isGpsFraud: true, isDeviceFraud: false });
           },
-          { enableHighAccuracy: true, timeout: 5000 }
+          { enableHighAccuracy: true, timeout: 8000 }
         );
-
       } catch (err) {
         setStatus('error');
-        setMessage(err.message || 'Xác thực thiết bị thất bại, vui lòng thử lại');
+        setMessage(err.message || 'Xác thực thiết bị thất bại.');
+        setErrorFlags({ isGpsFraud: false, isDeviceFraud: true });
       }
     };
 
-    setTimeout(() => {
-      performCheckin();
-    }, 1500); // Fake delay for UX
+    setTimeout(() => { performCheckin(); }, 800);
   }, [classId, token]);
 
   return (
@@ -76,6 +120,14 @@ const StudentCheckin = () => {
           <h4 className="fw-bold text-dark mb-1">Check-in Lớp {classId}</h4>
           <p className="text-muted small">Token xác minh: <span className="text-primary font-monospace">{token?.substring(0,8)}</span></p>
         </div>
+
+        {/* Cảnh báo trình duyệt không tương thích (chỉ hiện trên Android + Cốc Cốc / Zalo) */}
+        {browserWarning && (
+          <div className="alert alert-warning border-0 rounded-3 small py-2 px-3 mb-3 d-flex align-items-start gap-2">
+            <span>⚠️</span>
+            <span>{browserWarning}</span>
+          </div>
+        )}
 
         {status === 'checking' && (
           <div className="text-center py-5">
@@ -92,18 +144,13 @@ const StudentCheckin = () => {
             <p className="text-muted fw-medium">{message}</p>
             
             <div className="bg-success bg-opacity-10 p-3 rounded-4 text-start mt-4 border border-success border-opacity-25">
-              <div className="d-flex align-items-center mb-2">
+              <div className="d-flex align-items-center">
                 <div className="bg-white p-2 rounded-circle me-3 shadow-sm"><FaMapMarkerAlt className="text-success" /></div>
                 <div>
-                  <div className="small fw-bold text-dark">Toạ độ xác thực</div>
-                  <div className="small text-muted">{gps?.lat.toFixed(4)}, {gps?.lng.toFixed(4)}</div>
-                </div>
-              </div>
-              <div className="d-flex align-items-center">
-                <div className="bg-white p-2 rounded-circle me-3 shadow-sm"><FaFingerprint className="text-success" /></div>
-                <div>
-                  <div className="small fw-bold text-dark">Device Fingerprint</div>
-                  <div className="small text-muted">{fingerprint?.substring(0,10)}...</div>
+                  <div className="small fw-bold text-dark">Khoảng cách xác thực</div>
+                  <div className={`small fw-bold ${distance !== null && distance <= 30 ? 'text-success' : 'text-muted'}`}>
+                    {distance !== null ? `${distance} mét` : 'Đã xác thực vị trí'}
+                  </div>
                 </div>
               </div>
             </div>
@@ -116,26 +163,47 @@ const StudentCheckin = () => {
             <h4 className="fw-bold text-danger mb-3">Thất bại</h4>
             <p className="text-danger fw-medium px-3">{message}</p>
             
-            <div className="bg-danger bg-opacity-10 p-3 rounded-4 text-start mt-4 border border-danger border-opacity-25">
-              <div className="d-flex align-items-center mb-2">
-                <div className="bg-white p-2 rounded-circle me-3 shadow-sm"><FaMapMarkerAlt className="text-danger" /></div>
-                <div>
-                  <div className="small fw-bold text-dark">Toạ độ thiết bị</div>
-                  <div className="small text-muted">{gps?.lat ? `${gps.lat.toFixed(4)}, ${gps.lng.toFixed(4)}` : 'Bị từ chối GPS'}</div>
+            {errorFlags.isGpsFraud && (
+              <div className="bg-danger bg-opacity-10 p-3 rounded-4 text-start mt-4 border border-danger border-opacity-25">
+                <div className="d-flex align-items-center">
+                  <div className="bg-white p-2 rounded-circle me-3 shadow-sm"><FaMapMarkerAlt className="text-danger" /></div>
+                  <div>
+                    <div className="small fw-bold text-dark">Lỗi xác thực không gian</div>
+                    <div className="small fw-bold text-danger">
+                      {distance !== null ? `Bạn đang cách điểm quét ${distance} mét` : (gps ? 'Vị trí không hợp lệ' : 'Bị từ chối GPS')}
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="d-flex align-items-center">
-                <div className="bg-white p-2 rounded-circle me-3 shadow-sm"><FaFingerprint className="text-danger" /></div>
-                <div>
-                  <div className="small fw-bold text-dark">Device Fingerprint</div>
-                  <div className="small text-muted">{fingerprint ? fingerprint.substring(0,10) + '...' : 'Đang lấy...'}</div>
+            )}
+
+            {errorFlags.isDeviceFraud && (
+              <div className="bg-danger bg-opacity-10 p-3 rounded-4 text-start mt-3 border border-danger border-opacity-25">
+                <div className="d-flex align-items-center">
+                  <div className="bg-white p-2 rounded-circle me-3 shadow-sm"><FaShieldAlt className="text-danger" /></div>
+                  <div>
+                    <div className="small fw-bold text-dark">Lỗi xác thực thiết bị</div>
+                    <div className="small fw-bold text-danger">Thiết bị không hợp lệ / Sai chữ ký</div>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
             
-            <button className="btn btn-primary mt-4 py-2 w-100 shadow-sm fw-bold rounded-pill" onClick={() => window.location.reload()}>
-              Thử Lại Trực Tiếp Tại Lớp
-            </button>
+            {message === "Thiết bị chưa được đăng ký Passkey." ? (
+              <button 
+                className="btn btn-success mt-4 py-2 w-100 shadow-sm fw-bold rounded-pill d-flex align-items-center justify-content-center gap-2" 
+                onClick={async () => {
+                  const success = await registerPasskey(user?.MaSV || user?.MaId);
+                  if (success) window.location.reload();
+                }}
+              >
+                <FaShieldAlt /> Thiết lập Passkey ngay
+              </button>
+            ) : (
+              <button className="btn btn-primary mt-4 py-2 w-100 shadow-sm fw-bold rounded-pill" onClick={() => window.location.reload()}>
+                Thử Lại Trực Tiếp Tại Lớp
+              </button>
+            )}
           </div>
         )}
       </div>

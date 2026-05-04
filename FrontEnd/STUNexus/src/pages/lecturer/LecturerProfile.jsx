@@ -1,15 +1,40 @@
 import React, { useState, useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
-import { getTable, updateTable } from '../../services/mockService';
+import axiosClient from '../../utils/axiosClient';
 import { FaSave, FaKey, FaShieldAlt, FaUserTie } from 'react-icons/fa';
+
+// Kết nối trực tiếp tới Backend API
 
 const LecturerProfile = () => {
   const { user, updateUserSession } = useContext(AuthContext);
 
   const [formData, setFormData] = useState({
-    Email: user?.Email || '',
-    SoDienThoai: user?.SoDienThoai || ''
+    Email: '',
+    SoDienThoai: ''
   });
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user?.MaGV) return;
+      try {
+        const res = await axiosClient.get(`/giangvien/${user.MaGV}`);
+        if (res.data.success) {
+           setFormData({
+             Email: res.data.data.email || '',
+             SoDienThoai: res.data.data.soDienThoai || ''
+           });
+        }
+      } catch (err) {
+        console.error("Lỗi lấy thông tin giảng viên:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
+  }, [user]);
 
   const [passData, setPassData] = useState({
     oldPass: '',
@@ -19,23 +44,32 @@ const LecturerProfile = () => {
 
   const [message, setMessage] = useState({ text: '', type: '' });
 
-  const saveProfile = (e) => {
+  const saveProfile = async (e) => {
     e.preventDefault();
-    updateUserSession({ Email: formData.Email, SoDienThoai: formData.SoDienThoai });
-    
-    const lecturers = getTable('GiangVien');
-    const updated = lecturers.map(l => l.MaGV === user.MaGV ? { ...l, Email: formData.Email, SoDienThoai: formData.SoDienThoai } : l);
-    updateTable('GiangVien', updated);
-    
-    setMessage({ text: 'Cập nhật thông tin thành công.', type: 'success' });
+    try {
+      // Tách tên từ HoTen hiện tại trong session (BE cần HoLot và TenGv riêng)
+      const parts = user.HoTen.trim().split(' ');
+      const tenGv = parts.pop();
+      const hoLot = parts.join(' ');
+
+      await axiosClient.put(`/giangvien/${user.MaGV}`, {
+        hoLot: hoLot,
+        tenGv: tenGv,
+        email: formData.Email,
+        soDienThoai: formData.SoDienThoai
+      });
+      
+      updateUserSession({ Email: formData.Email, SoDienThoai: formData.SoDienThoai });
+      setIsEditing(false);
+      setMessage({ text: 'Cập nhật thông tin thành công.', type: 'success' });
+    } catch (err) {
+      setMessage({ text: err.response?.data?.message || 'Lỗi cập nhật hồ sơ.', type: 'danger' });
+    }
     setTimeout(() => setMessage({text:'', type:''}), 3000);
   };
 
-  const changePassword = (e) => {
+  const changePassword = async (e) => {
     e.preventDefault();
-    if(passData.oldPass !== user.MatKhau) {
-      setMessage({ text: 'Mật khẩu cũ không chính xác!', type: 'danger' }); return;
-    }
     if(passData.newPass !== passData.confirmPass) {
       setMessage({ text: 'Mật khẩu xác nhận không khớp!', type: 'danger' }); return;
     }
@@ -43,13 +77,18 @@ const LecturerProfile = () => {
       setMessage({ text: 'Mật khẩu mới phải từ 5 ký tự trở lên.', type: 'danger' }); return;
     }
 
-    updateUserSession({ MatKhau: passData.newPass });
-    const lecturers = getTable('GiangVien');
-    const updated = lecturers.map(l => l.MaGV === user.MaGV ? { ...l, MatKhau: passData.newPass } : l);
-    updateTable('GiangVien', updated);
-    
-    setPassData({oldPass: '', newPass: '', confirmPass: ''});
-    setMessage({ text: 'Đổi mật khẩu bảo mật thành công!', type: 'success' });
+    try {
+      await axiosClient.post('/auth/change-password', {
+        taiKhoan: user.TaiKhoan,
+        oldPassword: passData.oldPass,
+        newPassword: passData.newPass
+      });
+      
+      setPassData({oldPass: '', newPass: '', confirmPass: ''});
+      setMessage({ text: 'Đổi mật khẩu bảo mật thành công!', type: 'success' });
+    } catch (err) {
+      setMessage({ text: err.response?.data?.message || 'Đổi mật khẩu thất bại.', type: 'danger' });
+    }
     setTimeout(() => setMessage({text:'', type:''}), 4000);
   };
 
@@ -77,19 +116,34 @@ const LecturerProfile = () => {
               <p className="text-muted small mb-0">Mã Cán Bộ: {user?.MaGV}</p>
             </div>
             <hr />
-            <form onSubmit={saveProfile}>
-              <div className="mb-3">
-                <label className="form-label small fw-bold text-muted">Email công vụ</label>
-                <input type="email" className="form-control bg-light border-0 py-2" value={formData.Email} onChange={(e) => setFormData({...formData, Email: e.target.value})} />
-              </div>
-              <div className="mb-4">
-                <label className="form-label small fw-bold text-muted">Điện thoại liên lạc</label>
-                <input type="text" className="form-control bg-light border-0 py-2" value={formData.SoDienThoai} onChange={(e) => setFormData({...formData, SoDienThoai: e.target.value})} />
-              </div>
-              <button type="submit" className="btn btn-primary w-100 fw-bold py-2 rounded-pill gap-2 d-flex align-items-center justify-content-center shadow-sm">
-                <FaSave /> Lưu Thay Đổi
-              </button>
-            </form>
+            {loading ? (
+               <div className="text-center py-3"><div className="spinner-border text-primary spinner-border-sm"></div></div>
+            ) : (
+              <form onSubmit={saveProfile}>
+                <div className="mb-3">
+                  <label className="form-label small fw-bold text-muted">Email công vụ</label>
+                  <input type="email" className={`form-control py-2 ${isEditing ? 'bg-white border' : 'bg-light border-0'}`} readOnly={!isEditing} value={formData.Email} onChange={(e) => setFormData({...formData, Email: e.target.value})} />
+                </div>
+                <div className="mb-4">
+                  <label className="form-label small fw-bold text-muted">Điện thoại liên lạc</label>
+                  <input type="text" className={`form-control py-2 ${isEditing ? 'bg-white border' : 'bg-light border-0'}`} readOnly={!isEditing} value={formData.SoDienThoai} onChange={(e) => setFormData({...formData, SoDienThoai: e.target.value})} />
+                </div>
+                {!isEditing ? (
+                  <button type="button" onClick={() => setIsEditing(true)} className="btn btn-primary w-100 fw-bold py-2 rounded-pill shadow-sm">
+                    Chỉnh sửa thông tin
+                  </button>
+                ) : (
+                   <div className="d-flex gap-2">
+                     <button type="button" onClick={() => {setIsEditing(false); setFormData({Email: user?.Email||'', SoDienThoai: user?.SoDienThoai||''})}} className="btn btn-light w-50 fw-bold py-2 rounded-pill">
+                       Hủy
+                     </button>
+                     <button type="submit" className="btn btn-primary w-50 fw-bold py-2 rounded-pill d-flex align-items-center justify-content-center gap-2 shadow-sm">
+                       <FaSave /> Lưu Thay Đổi
+                     </button>
+                   </div>
+                )}
+              </form>
+            )}
           </div>
         </div>
 

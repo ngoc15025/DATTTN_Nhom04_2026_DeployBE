@@ -1,0 +1,89 @@
+USE [QuanLyDiemDanh_DATTTN];
+GO
+
+-- =============================================
+-- 1. BƠM DỮ LIỆU TÀI KHOẢN (ADMIN, GIẢNG VIÊN, SINH VIÊN)
+-- =============================================
+-- Lưu ý: Mật khẩu tao đang để là chuỗi '123456' để dễ test. 
+-- Thằng BE nhớ lúc làm API Login thì tạm thời so sánh chuỗi thường, 
+-- hoặc nó tự update lại thành chuỗi băm (Hash) BCrypt của nó nhé!
+
+INSERT INTO [dbo].[QuanTriVien] ([MaQTV], [TaiKhoan], [MatKhau], [HoTen])
+VALUES ('ADMIN01', 'admin', '123456', N'Quản Trị Viên Hệ Thống');
+
+INSERT INTO [dbo].[GiangVien] ([MaGV], [TaiKhoan], [MatKhau], [HoLot], [TenGV], [Email], [SoDienThoai], [TrangThai])
+VALUES 
+('GV001', 'gv.nguyenvan', '123456', N'Nguyễn Văn', N'A', 'nguyenvana@truong.edu.vn', '0901234567', 1),
+('GV002', 'gv.tran thi', '123456', N'Trần Thị', N'B', 'tranthib@truong.edu.vn', '0987654321', 1);
+
+-- Sinh viên ban đầu MaThietBi = NULL để test luồng đăng ký thiết bị lần đầu
+INSERT INTO [dbo].[SinhVien] ([MaSV], [TaiKhoan], [MatKhau], [HoLot], [TenSV], [Lop], [Email], [SoDienThoai], [MaThietBi], [AnhDaiDien])
+VALUES 
+('SV001', 'sv001', '123456', N'Lê Hoàng', N'Cường', 'D10CQCN', 'cuonglh@sinhvien.edu.vn', '0911111111', NULL, NULL),
+('SV002', 'sv002', '123456', N'Phạm Mai', N'Phương', 'D10CQCN', 'phuongpm@sinhvien.edu.vn', '0922222222', NULL, NULL),
+('SV003', 'sv003', '123456', N'Vũ Đức', N'Thắng', 'D10CQCN', 'thangvd@sinhvien.edu.vn', '0933333333', NULL, NULL),
+('SV004', 'sv004', '123456', N'Đỗ Hải', N'Yến', 'D10CQCN', 'yendh@sinhvien.edu.vn', '0944444444', NULL, NULL);
+
+-- =============================================
+-- 2. BƠM DỮ LIỆU MÔN HỌC & LỚP HỌC
+-- =============================================
+INSERT INTO [dbo].[MonHoc] ([MaMon], [TenMon])
+VALUES 
+('INT1306', N'Lập trình Web'),
+('INT1319', N'Cơ sở dữ liệu'),
+('INT1408', N'Phát triển ứng dụng di động');
+
+-- Cấu hình lớp học (15 buổi, mỗi tuần 1 buổi)
+INSERT INTO [dbo].[LopHoc] ([MaLop], [TenLop], [MaMon], [MaGV], [NgayBatDau], [NgayKetThuc], [GioBatDau], [GioKetThuc], [SoBuoiHoc])
+VALUES 
+('L01_WEB', N'Lớp Lập trình Web - Nhóm 1', 'INT1306', 'GV001', '2026-04-06', '2026-07-13', '07:00:00', '09:30:00', 15),
+('L02_CSDL', N'Lớp Cơ sở dữ liệu - Nhóm 2', 'INT1319', 'GV002', '2026-04-07', '2026-07-14', '13:00:00', '15:30:00', 15);
+
+-- Gán sinh viên vào lớp học
+INSERT INTO [dbo].[ChiTietLopHoc] ([MaLop], [MaSV])
+VALUES 
+('L01_WEB', 'SV001'), ('L01_WEB', 'SV002'), ('L01_WEB', 'SV003'), ('L01_WEB', 'SV004'),
+('L02_CSDL', 'SV001'), ('L02_CSDL', 'SV002');
+
+-- =============================================
+-- 3. BƠM DỮ LIỆU BUỔI HỌC (AUTO-SCHEDULING & NGOẠI LỆ)
+-- =============================================
+INSERT INTO [dbo].[BuoiHoc] ([MaLop], [NgayHoc], [GioBatDau], [GioKetThuc], [LoaiBuoiHoc], [TrangThaiBH], [GhiChu], [ToaDoGoc_Lat], [ToaDoGoc_Long])
+VALUES 
+-- Lớp Web: Buổi 1 đã học xong (Đã chốt sổ)
+('L01_WEB', '2026-04-06', '07:00:00', '09:30:00', 0, 2, NULL, 10.8411, 106.8098),
+-- Lớp Web: Buổi 2 đang diễn ra (Đang mở QR để quét)
+('L01_WEB', '2026-04-13', '07:00:00', '09:30:00', 0, 1, NULL, 10.8411, 106.8098),
+-- Lớp Web: Buổi 3 báo nghỉ (Nghỉ lễ)
+('L01_WEB', '2026-04-30', '07:00:00', '09:30:00', 2, 0, N'Nghỉ lễ 30/4', NULL, NULL),
+-- Lớp Web: Buổi học bù cho ngày lễ (Học bù)
+('L01_WEB', '2026-05-03', '07:00:00', '09:30:00', 1, 0, N'Học bù cho ngày lễ 30/4', NULL, NULL),
+-- Lớp CSDL: Chưa học tới
+('L02_CSDL', '2026-04-07', '13:00:00', '15:30:00', 0, 0, NULL, NULL, NULL);
+
+-- =============================================
+-- 4. BƠM DỮ LIỆU ĐIỂM DANH CHO BUỔI 1 (ĐÃ CHỐT SỔ)
+-- =============================================
+-- Chú ý: Cột TrangThai (1: Có mặt, 2: Đi trễ, 3: Vắng có phép, 4: Vắng không phép)
+-- Cột MaThietBi_Log mô phỏng việc sinh viên đã quét bằng điện thoại
+
+-- SV001: Có mặt đúng giờ
+INSERT INTO [dbo].[DiemDanh] ([MaBuoiHoc], [MaSV], [TrangThai], [ThoiGianQuet], [GhiChu], [NguoiCapNhat], [MaThietBi_Log], [ToaDoSV_Lat], [ToaDoSV_Long])
+VALUES 
+(1, 'SV001', 1, '2026-04-06 07:05:12', NULL, NULL, 'uuid-device-sv001-abc123', 10.8412, 106.8099);
+
+-- SV002: Đi trễ
+INSERT INTO [dbo].[DiemDanh] ([MaBuoiHoc], [MaSV], [TrangThai], [ThoiGianQuet], [GhiChu], [NguoiCapNhat], [MaThietBi_Log], [ToaDoSV_Lat], [ToaDoSV_Long])
+VALUES 
+(1, 'SV002', 2, '2026-04-06 07:45:00', N'Kẹt xe', NULL, 'uuid-device-sv002-xyz789', 10.8411, 106.8097);
+
+-- SV003: Vắng không phép (Hệ thống tự chốt)
+INSERT INTO [dbo].[DiemDanh] ([MaBuoiHoc], [MaSV], [TrangThai], [ThoiGianQuet], [GhiChu], [NguoiCapNhat], [MaThietBi_Log], [ToaDoSV_Lat], [ToaDoSV_Long])
+VALUES 
+(1, 'SV003', 4, NULL, NULL, 'HETHONG', NULL, NULL, NULL);
+
+-- SV004: Vắng có phép (Giảng viên sửa tay)
+INSERT INTO [dbo].[DiemDanh] ([MaBuoiHoc], [MaSV], [TrangThai], [ThoiGianQuet], [GhiChu], [NguoiCapNhat], [MaThietBi_Log], [ToaDoSV_Lat], [ToaDoSV_Long])
+VALUES 
+(1, 'SV004', 3, NULL, N'Đã nộp giấy khám bệnh', 'GV001', NULL, NULL, NULL);
+GO

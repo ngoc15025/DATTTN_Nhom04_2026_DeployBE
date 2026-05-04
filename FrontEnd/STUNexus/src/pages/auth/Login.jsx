@@ -1,23 +1,40 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
+import { FaEye, FaEyeSlash } from 'react-icons/fa';
 
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    const result = login(username, password);
-    if (result.success) {
-      if (result.role === 'admin') navigate('/admin/dashboard');
-      else if (result.role === 'lecturer') navigate('/lecturer/classes');
-      else if (result.role === 'student') navigate('/student/dashboard'); 
-    } else {
-      setError(result.message);
+    setError('');
+    setHasError(false);
+    setIsLoading(true);
+
+    try {
+      const result = await login(username, password);
+      if (result.success) {
+        if (result.role === 'admin') navigate('/admin/dashboard');
+        else if (result.role === 'lecturer') navigate('/lecturer/dashboard');
+        else if (result.role === 'student') navigate('/student/dashboard');
+      } else {
+        // Báo lỗi ngay lập tức, không delay
+        setError(result.message || 'Sai tài khoản hoặc mật khẩu!');
+        setHasError(true);
+        setIsLoading(false);
+      }
+    } catch (err) {
+      setError('Không thể kết nối tới máy chủ. Vui lòng kiểm tra Backend.');
+      setHasError(true);
+      setIsLoading(false);
     }
   };
 
@@ -31,44 +48,60 @@ const Login = () => {
             <p className="text-muted small">Cổng thông tin STU Nexus</p>
           </div>
           
-          {error && <div className="alert alert-danger py-2 small fw-bold bg-danger bg-opacity-10 border-0 text-danger">{error}</div>}
+          {error && (
+            <div className="alert alert-danger py-2 small fw-bold bg-danger bg-opacity-10 border-0 text-danger d-flex align-items-center gap-2">
+              <span>⚠️</span> {error}
+            </div>
+          )}
           
           <form onSubmit={handleLogin}>
             <div className="mb-3">
               <label className="form-label fw-bold text-secondary small">Tài Khoản</label>
-              <input 
-                type="text" 
-                className="form-control py-2 bg-light border-0" 
-                placeholder="Nhập mã số hoặc tên đăng nhập" 
-                value={username} 
-                onChange={e => setUsername(e.target.value)} 
-                required 
+              <input
+                type="text"
+                className={`form-control py-2 bg-light border-0 ${hasError ? 'is-invalid border border-danger' : ''}`}
+                style={{ backgroundImage: 'none' }} // Xóa icon ! của Bootstrap
+                placeholder="Nhập mã số hoặc tên đăng nhập"
+                value={username}
+                onChange={e => { setUsername(e.target.value); setHasError(false); setError(''); }}
+                required
+                disabled={isLoading}
               />
             </div>
             <div className="mb-4">
               <label className="form-label fw-bold text-secondary small">Mật Khẩu</label>
-              <input 
-                type="password" 
-                className="form-control py-2 bg-light border-0" 
-                placeholder="••••••••" 
-                value={password} 
-                onChange={e => setPassword(e.target.value)} 
-                required 
-              />
+              <div className="position-relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  className={`form-control py-2 bg-light border-0 pe-5 ${hasError ? 'is-invalid border border-danger' : ''}`}
+                  style={{ backgroundImage: 'none' }} // Xóa icon ! của Bootstrap
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={e => { setPassword(e.target.value); setHasError(false); setError(''); }}
+                  required
+                  disabled={isLoading}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(v => !v)}
+                  className="btn btn-link position-absolute end-0 top-50 translate-middle-y text-muted pe-3 p-0"
+                  style={{zIndex: 5, border: 'none', background: 'none'}}
+                  tabIndex={-1}
+                  aria-label="Toggle password visibility"
+                >
+                  {showPassword ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
+                </button>
+              </div>
             </div>
-            <button type="submit" className="btn btn-primary w-100 fw-bold py-3 shadow-sm rounded-pill mt-2">
-              Đăng Nhập
+            <button type="submit" className="btn btn-primary w-100 fw-bold py-3 shadow-sm rounded-pill mt-2" disabled={isLoading}>
+              {isLoading ? (
+                <span className="d-flex align-items-center justify-content-center gap-2">
+                  <span className="spinner-border spinner-border-sm" role="status"></span>
+                  Đang xác thực...
+                </span>
+              ) : 'Đăng Nhập'}
             </button>
           </form>
-          
-          <div className="mt-4 text-center p-3 bg-light rounded-3 border">
-            <h6 className="fw-bold text-dark mb-2 text-start small border-bottom pb-2">📋 Tài khoản truy cập mẫu (Từ SQL):</h6>
-            <div className="d-flex flex-column text-muted small px-2 text-start">
-              <span className="fw-bold text-danger mb-2">Admin: <span className="fw-normal text-dark user-select-all">admin_super / hash_password_123</span></span>
-              <span className="fw-bold text-success mb-2">Giảng viên: <span className="fw-normal text-dark user-select-all">thanh.nv / pass_gv_1</span></span>
-              <span className="fw-bold text-primary">Sinh viên: <span className="fw-normal text-dark user-select-all">201101 / pass_sv_1</span></span>
-            </div>
-          </div>
         </div>
       </div>
     </div>

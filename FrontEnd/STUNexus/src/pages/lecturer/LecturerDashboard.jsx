@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { AuthContext } from '../../context/AuthContext';
-import mockData from '../../data/mockDb.json';
-import { FaUserGraduate, FaCalendarCheck, FaExclamationTriangle } from 'react-icons/fa';
+import axiosClient from '../../utils/axiosClient';
+import { FaUserGraduate, FaCalendarCheck, FaExclamationTriangle, FaCheckCircle } from 'react-icons/fa';
 
 const LecturerDashboard = () => {
   const { user } = useContext(AuthContext);
@@ -10,35 +10,16 @@ const LecturerDashboard = () => {
   useEffect(() => {
     if (!user) return;
     
-    // Lấy danh sách ID lớp phụ trách
-    const myClassIds = mockData.LopHoc.filter(l => l.MaGV === user.MaGV).map(l => l.MaLop);
-    
-    // Đếm lượng sinh viên tổng
-    const myStudentsRaw = mockData.ChiTietLopHoc.filter(c => myClassIds.includes(c.MaLop)).map(c => c.MaSV);
-    const uniqueStudents = [...new Set(myStudentsRaw)];
-    
-    // Đếm điểm danh chuyên cần
-    const sessionIds = mockData.BuoiHoc.filter(b => myClassIds.includes(b.MaLop)).map(b => b.MaBuoiHoc);
-    const attendances = mockData.DiemDanh.filter(d => sessionIds.includes(d.MaBuoiHoc));
-    
-    const coMatCount = attendances.filter(a => a.TrangThai === 'Có mặt').length;
-    const totalCount = attendances.length;
-    const avgAttendance = totalCount === 0 ? 0 : Math.round((coMatCount / totalCount) * 100);
-    
-    // Tính sinh viên vắng nhiều >= 3
-    const warningMap = {};
-    attendances.forEach(a => {
-      if (a.TrangThai.includes('Vắng') || a.TrangThai.includes('trễ')) {
-        warningMap[a.MaSV] = (warningMap[a.MaSV] || 0) + 1;
+    const fetchStats = async () => {
+      try {
+        const res = await axiosClient.get(`/diemdanh/lecturer-stats/${user.MaGV || user.MaId}`);
+        setStats(res.data);
+      } catch (err) {
+        console.error('Lỗi tải thống kê:', err);
       }
-    });
-    const warningStudents = Object.values(warningMap).filter(v => v >= 3).length;
+    };
 
-    setStats({
-      totalStudents: uniqueStudents.length,
-      avgAttendance,
-      warningStudents
-    });
+    fetchStats();
   }, [user]);
 
   return (
@@ -90,14 +71,55 @@ const LecturerDashboard = () => {
         <div className="card-header bg-white border-bottom py-3">
           <h6 className="m-0 fw-bold text-dark">Cảnh báo Sinh viên cấm thi</h6>
         </div>
-        <div className="card-body p-5 text-center">
-          <div className="bg-warning bg-opacity-10 d-inline-flex justify-content-center align-items-center rounded-circle mb-3" style={{width: '80px', height: '80px'}}>
-            <FaExclamationTriangle className="text-warning fs-1" />
-          </div>
-          <p className="text-muted fw-medium fs-5 mb-0">Không có sinh viên nào rơi vào ngưỡng cấm thi trong tuần này.</p>
+        <div className="card-body p-0">
+          {stats.warningList && stats.warningList.length > 0 ? (
+            <div className="table-responsive">
+              <table className="table table-hover align-middle mb-0">
+                <thead className="table-light text-muted">
+                  <tr>
+                    <th className="py-3 px-4 border-bottom-0">Mã SV</th>
+                    <th className="py-3 px-4 border-bottom-0">Họ Tên</th>
+                    <th className="py-3 px-4 border-bottom-0">Lớp</th>
+                    <th className="py-3 px-4 border-bottom-0">Môn / Lớp HP</th>
+                    <th className="py-3 px-4 border-bottom-0 text-center">Tình Trạng (Vắng)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.warningList.map((sv, idx) => (
+                    <tr key={idx}>
+                      <td className="px-4 fw-bold text-primary">{sv.maSv}</td>
+                      <td className="px-4 fw-medium text-dark">{sv.hoTen}</td>
+                      <td className="px-4"><span className="badge bg-secondary bg-opacity-10 text-dark border">{sv.lop}</span></td>
+                      <td className="px-4">
+                        <div className="fw-bold text-truncate" style={{maxWidth: '200px'}} title={sv.tenMon || sv.tenLop}>
+                           {sv.tenMon || sv.tenLop}
+                        </div>
+                        <div className="text-muted small">Mã: {sv.tenLop}</div>
+                      </td>
+                      <td className="px-4 text-center">
+                         <div className={`badge ${sv.tiLeVang >= 50 ? 'bg-danger' : 'bg-warning text-dark'} rounded-pill px-3 py-2`} style={{fontSize: '0.85rem'}}>
+                           {sv.soBuoiVang}/{sv.tongBuoi} ({sv.tiLeVang}%)
+                         </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="p-5 text-center">
+              <div className="bg-success bg-opacity-10 d-inline-flex justify-content-center align-items-center rounded-circle mb-3" style={{width: '80px', height: '80px'}}>
+                <FaCheckCircle className="text-success fs-1" />
+              </div>
+              <p className="text-muted fw-medium fs-5 mb-0">
+                Bạn đang quản lý lớp học rất tốt. Không có sinh viên nào rơi vào ngưỡng cấm thi!
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 };
+
 export default LecturerDashboard;

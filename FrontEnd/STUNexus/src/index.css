@@ -143,3 +143,55 @@ body {
 }
 .badge-active { background-color: rgba(28, 200, 138, 0.15); color: #159467; }
 .badge-inactive { background-color: rgba(231, 74, 59, 0.15); color: #c43224; }
+
+/* Responsive Utilities */
+@media (max-width: 991.98px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+  .sidebar.show {
+    transform: translateX(0);
+  }
+  .main-wrapper {
+    margin-left: 0 !important;
+  }
+  .top-header {
+    padding: 0 15px;
+  }
+}
+
+/* Mobile Table to Card View */
+@media (max-width: 767.98px) {
+  .mobile-card-view thead {
+    display: none;
+  }
+  .mobile-card-view tbody tr {
+    display: block;
+    background: white;
+    margin-bottom: 15px;
+    border-radius: 12px;
+    padding: 15px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    border: 1px solid #eee;
+  }
+  .mobile-card-view tbody td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #f8f9fa;
+    padding: 10px 0 !important;
+    text-align: right;
+  }
+  .mobile-card-view tbody td:last-child {
+    border-bottom: none;
+  }
+  .mobile-card-view tbody td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    text-align: left;
+    margin-right: 15px;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+  }
+}
+
