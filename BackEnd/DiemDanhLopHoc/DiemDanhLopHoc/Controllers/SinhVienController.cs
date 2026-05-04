@@ -4,11 +4,13 @@ using DiemDanhLopHoc.Models;
 using DiemDanhLopHoc.Utils;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 
 namespace DiemDanhLopHoc.Controllers
 {
     [Route("api/sinhvien")]
     [ApiController]
+    [Authorize(Roles = "Admin,Lecturer")]
     public class SinhVienController : ControllerBase
     {
         private readonly AppDbContext _context;

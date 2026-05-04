@@ -8,11 +8,13 @@ using DiemDanhLopHoc.Utils;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using System.Text;
+using Microsoft.AspNetCore.Authorization;
 
 namespace DiemDanhLopHoc.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "Student")]
     public class WebAuthnController : ControllerBase
     {
         private readonly IFido2 _fido2;

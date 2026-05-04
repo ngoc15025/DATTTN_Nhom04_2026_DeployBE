@@ -3,11 +3,13 @@ using DiemDanhLopHoc.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using DiemDanhLopHoc.Utils;
+using Microsoft.AspNetCore.Authorization;
 
 namespace DiemDanhLopHoc.Controllers
 {
     [Route("api/admin")]
     [ApiController]
+    [Authorize(Roles = "Admin")]
     public class AdminController : ControllerBase
     {
         private readonly AppDbContext _context;

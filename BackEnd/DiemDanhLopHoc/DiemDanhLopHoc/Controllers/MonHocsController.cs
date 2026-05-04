@@ -3,12 +3,13 @@ using DiemDanhLopHoc.DTOs;
 using DiemDanhLopHoc.Models; 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-
+using Microsoft.AspNetCore.Authorization;
 
 namespace DiemDanhLopHoc.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "Admin,Lecturer")]
     public class MonHocsController : ControllerBase
     {
         private readonly AppDbContext _context;

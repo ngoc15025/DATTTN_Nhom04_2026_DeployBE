@@ -4,6 +4,7 @@ using DiemDanhLopHoc.Models;
 using DiemDanhLopHoc.Utils;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 
 namespace DiemDanhLopHoc.Controllers
 {
@@ -16,6 +17,7 @@ namespace DiemDanhLopHoc.Controllers
     // nên việc thêm/xem sinh viên của lớp sẽ thao tác qua navigation collection MaSvs.
     [Route("api/lophoc")]
     [ApiController]
+    [Authorize(Roles = "Admin,Lecturer")]
     public class LopHocController : ControllerBase
     {
         private readonly AppDbContext _context;

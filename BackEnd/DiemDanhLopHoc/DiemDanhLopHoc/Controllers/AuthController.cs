@@ -7,6 +7,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using DiemDanhLopHoc.Utils;
+using Microsoft.AspNetCore.Authorization;
 
 //============API Đăng nhập================
 namespace DiemDanhLopHoc.Controllers
@@ -91,6 +92,7 @@ namespace DiemDanhLopHoc.Controllers
         }
 
         [HttpPost("change-password")]
+        [Authorize]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto request)
         {
             bool CheckPassword(string stored, string input)

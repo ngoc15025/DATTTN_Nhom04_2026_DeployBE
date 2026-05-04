@@ -5,11 +5,13 @@ using DiemDanhLopHoc.Models;
 using DiemDanhLopHoc.DTOs;
 using System.Security.Cryptography;
 using DiemDanhLopHoc.Utils;
+using Microsoft.AspNetCore.Authorization;
 
 namespace DiemDanhLopHoc.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "Admin,Lecturer,Student")]
     public class DiemDanhController : ControllerBase
     {
         private readonly AppDbContext _context;

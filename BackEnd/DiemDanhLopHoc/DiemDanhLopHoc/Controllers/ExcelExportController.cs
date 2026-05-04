@@ -2,11 +2,13 @@ using ClosedXML.Excel;
 using DiemDanhLopHoc.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 
 namespace DiemDanhLopHoc.Controllers
 {
     [Route("api/excel")]
     [ApiController]
+    [Authorize(Roles = "Admin,Lecturer")]
     public class ExcelExportController : ControllerBase
     {
         private readonly AppDbContext _context;
