@@ -62,6 +62,7 @@ namespace DiemDanhLopHoc.Controllers
                 from mh in mhJoin.DefaultIfEmpty()
                 where maLopList.Contains(bh.MaLop)
                    && bh.TrangThaiBh == 2                          // Buổi đã chốt sổ
+                   && bh.LoaiBuoiHoc != 2                          // Không phải buổi báo nghỉ
                    && !recordedSessionIds.Contains(bh.MaBuoiHoc)  // SV chưa có bản ghi
                 select new DiemDanhDto
                 {
@@ -170,9 +171,12 @@ namespace DiemDanhLopHoc.Controllers
 
             var lopIds = lopHocs.Select(l => l.MaLop).ToList();
 
-            // 2. Lấy toàn bộ bản ghi điểm danh của các lớp này
+            // 2. Lấy toàn bộ bản ghi điểm danh của các lớp này (Chỉ lấy từ các buổi đã chốt và không báo nghỉ)
             var allAttendances = await _context.DiemDanhs
-                .Where(d => lopIds.Contains(d.MaBuoiHocNavigation.MaLop))
+                .Include(d => d.MaBuoiHocNavigation)
+                .Where(d => lopIds.Contains(d.MaBuoiHocNavigation.MaLop) 
+                         && d.MaBuoiHocNavigation.TrangThaiBh == 2 
+                         && d.MaBuoiHocNavigation.LoaiBuoiHoc != 2)
                 .ToListAsync();
 
             // 3. Tính toán Thống kê Tổng quan
@@ -188,8 +192,8 @@ namespace DiemDanhLopHoc.Controllers
 
             foreach (var lop in lopHocs)
             {
-                // Các buổi học đã kết thúc (chốt sổ)
-                var buoiDaChot = lop.BuoiHocs.Where(b => b.TrangThaiBh == 2).ToList();
+                // Các buổi học đã kết thúc (chốt sổ) và không bị báo nghỉ
+                var buoiDaChot = lop.BuoiHocs.Where(b => b.TrangThaiBh == 2 && b.LoaiBuoiHoc != 2).ToList();
                 var buoiDaChotIds = buoiDaChot.Select(b => b.MaBuoiHoc).ToList();
 
                 foreach (var sv in lop.MaSvs)

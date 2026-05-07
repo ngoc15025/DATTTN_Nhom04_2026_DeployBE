@@ -137,7 +137,21 @@ namespace DiemDanhLopHoc.Controllers
             return Ok(new { success = true, message = "Đã cập nhật trạng thái buổi học!" });
         }
 
-        // 5. Xóa buổi học
+        // 5. Báo nghỉ (Cập nhật LoaiBuoiHoc = 2)
+        [HttpPut("{id}/cancel")]
+        public async Task<IActionResult> ReportAbsence(int id)
+        {
+            var buoiHoc = await _context.BuoiHocs.FindAsync(id);
+            if (buoiHoc == null) return NotFound(new { message = "Không tìm thấy buổi học." });
+
+            buoiHoc.LoaiBuoiHoc = 2; // 2: Báo nghỉ
+            buoiHoc.TrangThaiBh = 0; // Đưa về trạng thái chưa điểm danh
+            
+            await _context.SaveChangesAsync();
+            return Ok(new { success = true, message = "Đã cập nhật trạng thái báo nghỉ cho buổi học này!" });
+        }
+
+        // 6. Xóa buổi học
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
@@ -150,10 +164,17 @@ namespace DiemDanhLopHoc.Controllers
             return Ok(new { success = true, message = "Đã xóa buổi học!" });
         }
 
-        // 6. Lấy QR Token Động (Cập nhật sau mỗi 30s)
+        // 7. Lấy QR Token Động (Cập nhật sau mỗi 30s)
         [HttpGet("{id}/qr-token")]
         public IActionResult GetQrToken(int id)
         {
+            // Kiểm tra nếu là buổi báo nghỉ thì không cho lấy Token
+            var buoiHoc = _context.BuoiHocs.Find(id);
+            if (buoiHoc != null && buoiHoc.LoaiBuoiHoc == 2)
+            {
+                return BadRequest(new { success = false, message = "Buổi học này đã báo nghỉ, không thể lấy mã QR." });
+            }
+
             var token = QrUtils.GenerateQrToken(id);
             return Ok(new { success = true, token = token });
         }

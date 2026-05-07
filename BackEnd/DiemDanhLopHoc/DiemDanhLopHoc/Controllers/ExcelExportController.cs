@@ -152,7 +152,8 @@ namespace DiemDanhLopHoc.Controllers
 
             if (lop == null) return NotFound("Không tìm thấy lớp học.");
 
-            var buoiHocs = lop.BuoiHocs.OrderBy(b => b.NgayHoc).ToList();
+            // Chỉ lấy các buổi học đã chốt sổ và không bị báo nghỉ
+            var buoiHocs = lop.BuoiHocs.Where(b => b.TrangThaiBh == 2 && b.LoaiBuoiHoc != 2).OrderBy(b => b.NgayHoc).ToList();
             var buoiHocIds = buoiHocs.Select(b => b.MaBuoiHoc).ToList();
 
             var allAttendances = await _context.DiemDanhs
