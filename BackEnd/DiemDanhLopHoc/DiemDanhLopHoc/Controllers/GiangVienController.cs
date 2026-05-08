@@ -10,7 +10,7 @@ namespace DiemDanhLopHoc.Controllers
 {
     [Route("api/giangvien")]
     [ApiController]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public class GiangVienController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -22,6 +22,7 @@ namespace DiemDanhLopHoc.Controllers
 
         // 1. Lấy danh sách (GET) để kiểm tra
         [HttpGet]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetAll()
         {
             var danhSach = await _context.GiangViens
@@ -41,6 +42,7 @@ namespace DiemDanhLopHoc.Controllers
         }
 
         [HttpGet("{maGv}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetById(string maGv)
         {
             var gv = await _context.GiangViens.FindAsync(maGv);
@@ -60,6 +62,7 @@ namespace DiemDanhLopHoc.Controllers
 
         // 2. Thêm mới (POST) 
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create([FromBody] TaoGiangVienDto request) 
         {
             var giangVienMoi = new GiangVien
@@ -79,6 +82,7 @@ namespace DiemDanhLopHoc.Controllers
         }
 
         [HttpPost("{maSv}/reset-device")]
+        [Authorize(Roles = "Admin,Lecturer")]
         public async Task<IActionResult> ResetDevice(string maSv)
         {
             var sv = await _context.SinhViens.FindAsync(maSv);
@@ -96,6 +100,7 @@ namespace DiemDanhLopHoc.Controllers
 
         // 4. Cập nhật (PUT)
         [HttpPut("{maGv}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Update(string maGv, [FromBody] CapNhatGiangVienDto request)
         {
             var gv = await _context.GiangViens.FindAsync(maGv);
@@ -114,6 +119,7 @@ namespace DiemDanhLopHoc.Controllers
 
         // 5. Xóa (DELETE)
         [HttpDelete("{maGv}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(string maGv)
         {
             var gv = await _context.GiangViens.FindAsync(maGv);
