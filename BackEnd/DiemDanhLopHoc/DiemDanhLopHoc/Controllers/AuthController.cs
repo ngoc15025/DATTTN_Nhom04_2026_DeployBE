@@ -81,21 +81,17 @@ namespace DiemDanhLopHoc.Controllers
                 }
                 var hoTenSv = $"{sinhVien.HoLot} {sinhVien.TenSv}";
 
-                // --- CHỐT CHẶN: Kiểm tra thiết bị đăng nhập cho Sinh viên ---
+                // --- CẢNH BÁO: Kiểm tra thiết bị đăng nhập cho Sinh viên ---
                 // Nếu sinh viên đã có thiết bị đăng ký (DeviceUUID) mà đăng nhập từ máy lạ
-                if (!string.IsNullOrEmpty(sinhVien.DeviceUUID) && sinhVien.DeviceUUID != request.DeviceUuid)
-                {
-                    return Unauthorized(new { 
-                        success = false, 
-                        message = "Tài khoản này đã được bảo mật trên một thiết bị khác. Không thể đăng nhập từ máy lạ để đảm bảo tính minh bạch khi điểm danh!" 
-                    });
-                }
+                // Chúng ta vẫn cho phép đăng nhập để xem thông tin, nhưng sẽ cảnh báo ở FE
+                bool isDifferentDevice = !string.IsNullOrEmpty(sinhVien.DeviceUUID) && sinhVien.DeviceUUID != request.DeviceUuid;
 
                 var token = GenerateJwtToken(sinhVien.TaiKhoan, "Student", hoTenSv, sinhVien.MaSv);
                 return Ok(new { success = true, data = new {
                     token, role = "Student", name = hoTenSv,
                     anhDaiDien = sinhVien.AnhDaiDien,
-                    hasPasskey = sinhVien.PasskeyCredentialId != null
+                    hasPasskey = sinhVien.PasskeyCredentialId != null,
+                    isDifferentDevice = isDifferentDevice
                 }});
             }
 
